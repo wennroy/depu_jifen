@@ -1,4 +1,5 @@
 import { Toast } from 'antd-mobile';
+import { SkipForward, Calculator, Shield } from 'lucide-react';
 import http from '../../api/http';
 import styles from './AdminToolbar.module.css';
 
@@ -22,10 +23,19 @@ export default function AdminToolbar({ roomCode, adminToken, onSettle }: Props) 
 
   return (
     <div className={styles.toolbar}>
-      <div className={styles.label}>管理员</div>
+      <div className={styles.label}>
+        <Shield size={12} />
+        <span>管理</span>
+      </div>
       <div className={styles.buttons}>
-        <button className={styles.btn} onClick={handleNextRound}>下一局</button>
-        <button className={`${styles.btn} ${styles.settleBtn}`} onClick={onSettle}>结算</button>
+        <button className={styles.btn} onClick={handleNextRound}>
+          <SkipForward size={16} />
+          <span>下一局</span>
+        </button>
+        <button className={`${styles.btn} ${styles.settleBtn}`} onClick={onSettle}>
+          <Calculator size={16} />
+          <span>结算</span>
+        </button>
       </div>
     </div>
   );

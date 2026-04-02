@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
+import { Share2, Loader2 } from 'lucide-react';
 import http from '../api/http';
 import { useGameStore, getStoredTokens } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -94,10 +95,10 @@ export default function RoomPage() {
 
   if (!loaded) {
     return (
-      <div className="felt-bg" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="felt-bg" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '12px' }}>♠ ♥ ♦ ♣</div>
-          <div>加载中...</div>
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: 12, color: 'var(--color-accent)' }} />
+          <div style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px' }}>加载中...</div>
         </div>
       </div>
     );
@@ -118,6 +119,7 @@ export default function RoomPage() {
           </div>
         </div>
         <button className={styles.shareBtn} onClick={handleShare}>
+          <Share2 size={14} />
           分享
         </button>
       </header>

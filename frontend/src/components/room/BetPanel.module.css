@@ -1,18 +1,21 @@
 .panel {
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-card-border);
-  border-radius: 14px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .sectionTitle {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
+  font-family: var(--font-display);
 }
 
 .presets {
@@ -24,24 +27,29 @@
 .presetBtn {
   flex: 1;
   padding: 10px 0;
-  background: rgba(26, 107, 60, 0.3);
-  border: 1px solid var(--color-card-border);
-  border-radius: 8px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-body);
+  transition: all var(--duration-fast) var(--ease-out);
+  font-family: var(--font-display);
 }
 
 .presetBtn:hover:not(:disabled) {
-  background: rgba(26, 107, 60, 0.5);
-  border-color: var(--color-gold-dim);
+  background: var(--color-glass-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.presetBtn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
 }
 
 .presetBtn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -53,17 +61,19 @@
 .input {
   flex: 1;
   padding: 12px 14px;
-  background: rgba(10, 30, 18, 0.6);
-  border: 1px solid var(--color-card-border);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 1rem;
   font-family: var(--font-body);
   outline: none;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .input:focus {
-  border-color: var(--color-gold);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
 .input::placeholder {
@@ -72,23 +82,29 @@
 
 .betBtn {
   padding: 12px 24px;
-  background: linear-gradient(135deg, var(--color-chip-red), #a02828);
+  background: linear-gradient(135deg, var(--color-chip-red), #DC2626);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: white;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
-  font-family: var(--font-body);
+  transition: all var(--duration-normal) var(--ease-out);
+  font-family: var(--font-display);
+  letter-spacing: 1px;
   white-space: nowrap;
 }
 
 .betBtn:hover:not(:disabled) {
-  box-shadow: 0 2px 12px rgba(204, 51, 51, 0.4);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+  transform: translateY(-1px);
+}
+
+.betBtn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
 }
 
 .betBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }

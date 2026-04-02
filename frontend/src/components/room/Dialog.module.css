@@ -1,35 +1,41 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  animation: fadeIn var(--duration-fast) ease;
 }
 
 .dialog {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-card-border);
-  border-radius: 16px;
-  padding: 24px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-xl);
+  padding: 28px 24px;
   width: 100%;
   max-width: 380px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-  animation: fadeInUp 0.25s ease-out;
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.05) inset,
+    0 24px 64px rgba(0, 0, 0, 0.6);
+  animation: scaleIn var(--duration-normal) var(--ease-out);
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 1.2rem;
-  color: var(--color-gold-light);
-  margin-bottom: 6px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
 
 .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--color-text-secondary);
   margin-bottom: 20px;
 }
@@ -37,20 +43,23 @@
 .input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(10, 30, 18, 0.6);
-  border: 1px solid var(--color-card-border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 1.1rem;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   outline: none;
   margin-bottom: 20px;
   text-align: center;
   font-weight: 600;
+  letter-spacing: 1px;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .input:focus {
-  border-color: var(--color-gold);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
 }
 
 .input::placeholder {
@@ -66,39 +75,57 @@
 .cancelBtn {
   flex: 1;
   padding: 12px;
-  background: transparent;
-  border: 1px solid var(--color-card-border);
-  border-radius: 10px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.cancelBtn:hover {
+  background: var(--color-glass-hover);
+  color: var(--color-text-primary);
+}
+
+.cancelBtn:active {
+  transform: scale(0.97);
 }
 
 .confirmBtn {
   flex: 1;
   padding: 12px;
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dim));
   border: none;
-  border-radius: 10px;
-  color: #0a1e12;
-  font-size: 0.95rem;
+  border-radius: var(--radius-md);
+  color: var(--color-bg-deep);
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  font-family: var(--font-body);
-  transition: all 0.2s;
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .confirmBtn:hover:not(:disabled) {
-  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 16px rgba(226, 176, 80, 0.25);
+  transform: translateY(-1px);
+}
+
+.confirmBtn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
 }
 
 .confirmBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Settle dialog */
 .settleGrid {
   max-height: 300px;
   overflow-y: auto;
@@ -110,66 +137,90 @@
   align-items: center;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.settleRow:last-child {
+  border-bottom: none;
 }
 
 .settleUsername {
   flex: 1;
   font-weight: 600;
   color: var(--color-text-primary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .settleInput {
   width: 100px;
   padding: 8px 10px;
-  background: rgba(10, 30, 18, 0.6);
-  border: 1px solid var(--color-card-border);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: 0.95rem;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   text-align: center;
   outline: none;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .settleInput:focus {
-  border-color: var(--color-gold);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
 }
 
 .settleTotal {
   text-align: center;
-  padding: 10px;
+  padding: 12px;
   font-size: 0.85rem;
   margin-bottom: 12px;
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-sm);
 }
 
 .totalOk {
   color: var(--color-success);
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.15);
 }
 
 .totalBad {
   color: var(--color-danger);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.15);
 }
 
 .noteInput {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(10, 30, 18, 0.6);
-  border: 1px solid var(--color-card-border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 0.9rem;
   font-family: var(--font-body);
   outline: none;
   margin-bottom: 16px;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.noteInput:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-glow);
 }
 
 .noteInput::placeholder {
   color: var(--color-text-muted);
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }

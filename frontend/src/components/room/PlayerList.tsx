@@ -1,3 +1,4 @@
+import { Crown, ArrowRightLeft, Settings2 } from 'lucide-react';
 import type { Player } from '../../stores/gameStore';
 import styles from './PlayerList.module.css';
 
@@ -15,7 +16,10 @@ export default function PlayerList({ players, myPlayerId, isAdmin, onTransfer, o
 
   return (
     <div className={styles.container}>
-      <div className={styles.sectionTitle}>玩家 ({activePlayers.length})</div>
+      <div className={styles.sectionTitle}>
+        <span>玩家</span>
+        <span className={styles.count}>{activePlayers.length}</span>
+      </div>
       <div className={styles.grid}>
         {sorted.map((player, idx) => {
           const isMe = player.player_id === myPlayerId;
@@ -23,30 +27,35 @@ export default function PlayerList({ players, myPlayerId, isAdmin, onTransfer, o
             <div
               key={player.player_id}
               className={`${styles.card} ${isMe ? styles.cardMe : ''}`}
-              onClick={() => {
-                if (!isMe) onTransfer(player.player_id);
-              }}
+              onClick={() => { if (!isMe) onTransfer(player.player_id); }}
             >
               <div className={styles.cardTop}>
                 <div className={styles.rank}>
-                  {idx === 0 ? '👑' : `#${idx + 1}`}
+                  {idx === 0 ? (
+                    <Crown size={14} className={styles.crownIcon} />
+                  ) : (
+                    <span>#{idx + 1}</span>
+                  )}
                 </div>
                 {isAdmin && !isMe && onAdjust && (
                   <button
                     className={styles.adjustBtn}
                     onClick={(e) => { e.stopPropagation(); onAdjust(player.player_id); }}
                   >
-                    调整
+                    <Settings2 size={12} />
                   </button>
                 )}
               </div>
               <div className={styles.username}>
                 {player.username}
-                {isMe && <span className={styles.meBadge}>我</span>}
+                {isMe && <span className={styles.meBadge}>ME</span>}
               </div>
               <div className={styles.chips}>{player.chips.toLocaleString()}</div>
               {!isMe && (
-                <div className={styles.tapHint}>点击转账</div>
+                <div className={styles.tapHint}>
+                  <ArrowRightLeft size={10} />
+                  <span>转账</span>
+                </div>
               )}
             </div>
           );

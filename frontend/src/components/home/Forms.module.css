@@ -11,29 +11,31 @@
 }
 
 .label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  font-family: var(--font-display);
 }
 
 .input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(10, 30, 18, 0.6);
-  border: 1px solid var(--color-card-border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: 1rem;
   font-family: var(--font-body);
   outline: none;
-  transition: border-color 0.3s;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .input:focus {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .input::placeholder {
@@ -43,29 +45,46 @@
 .submitBtn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dim));
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dim));
   border: none;
-  border-radius: 12px;
-  color: #0a1e12;
-  font-size: 1.05rem;
+  border-radius: var(--radius-md);
+  color: var(--color-bg-deep);
+  font-size: 1rem;
   font-weight: 700;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--duration-normal) var(--ease-out);
   margin-top: 4px;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.submitBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.15) 50%, transparent 60%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
 }
 
 .submitBtn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 20px rgba(226, 176, 80, 0.25);
 }
 
 .submitBtn:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .submitBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

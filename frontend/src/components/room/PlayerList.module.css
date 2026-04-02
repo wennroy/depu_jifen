@@ -1,14 +1,33 @@
 .container {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .sectionTitle {
-  font-size: 0.8rem;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
 }
 
 .grid {
@@ -24,34 +43,36 @@
 }
 
 .card {
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-card-border);
-  border-radius: 12px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
   padding: 14px 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--duration-normal) var(--ease-out);
   position: relative;
   overflow: hidden;
 }
 
 .card:hover {
-  border-color: var(--color-gold-dim);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-glass-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .card:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .cardMe {
-  border-color: var(--color-gold-dim);
-  background: linear-gradient(145deg, rgba(26, 107, 60, 0.3), var(--color-card-bg));
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-glass);
   cursor: default;
 }
 
 .cardMe:hover {
   transform: none;
+  box-shadow: none;
 }
 
 .cardTop {
@@ -62,23 +83,38 @@
 }
 
 .rank {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.crownIcon {
+  color: var(--color-accent);
+  filter: drop-shadow(0 0 4px var(--color-accent-glow));
 }
 
 .adjustBtn {
-  font-size: 0.65rem;
-  padding: 2px 8px;
-  background: rgba(212, 175, 55, 0.15);
-  border: 1px solid var(--color-gold-dim);
-  border-radius: 4px;
-  color: var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-family: var(--font-body);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.adjustBtn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent-border);
 }
 
 .username {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 4px;
@@ -88,22 +124,31 @@
 }
 
 .meBadge {
-  font-size: 0.65rem;
-  padding: 1px 6px;
-  background: var(--color-gold);
-  color: #0a1e12;
+  font-size: 0.55rem;
+  padding: 2px 6px;
+  background: var(--color-accent);
+  color: var(--color-bg-deep);
   border-radius: 4px;
   font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 1px;
 }
 
 .chips {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-gold-light);
+  font-family: var(--font-display);
+  color: var(--color-accent-bright);
+  letter-spacing: 0.5px;
 }
 
 .tapHint {
-  font-size: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
   color: var(--color-text-muted);
-  margin-top: 4px;
+  margin-top: 6px;
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
 }

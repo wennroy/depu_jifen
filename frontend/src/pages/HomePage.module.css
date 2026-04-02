@@ -1,35 +1,53 @@
 .container {
   width: 100%;
   max-width: 420px;
-  animation: fadeInUp 0.5s ease-out;
+  animation: fadeInUp var(--duration-slow) var(--ease-out);
 }
 
 .header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 36px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.logoIcon {
+  width: 40px;
+  height: 40px;
+  color: var(--color-accent);
+  filter: drop-shadow(0 0 8px var(--color-accent-glow));
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 2.2rem;
-  font-weight: 900;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 
 .subtitle {
   color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
 }
 
 .tabs {
   display: flex;
   gap: 0;
   margin-bottom: 24px;
-  background: rgba(10, 30, 18, 0.6);
-  border-radius: 12px;
+  background: var(--color-glass-bg);
+  border-radius: var(--radius-md);
   padding: 4px;
-  border: 1px solid var(--color-card-border);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .tab {
@@ -37,35 +55,40 @@
   padding: 12px 0;
   border: none;
   background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-  font-family: var(--font-body);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-normal) var(--ease-out);
+  font-family: var(--font-display);
+  letter-spacing: 0.5px;
 }
 
 .tab:hover {
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
 }
 
 .tabActive {
-  background: var(--color-felt-green);
-  color: var(--color-gold-light);
-  box-shadow: 0 2px 8px rgba(26, 107, 60, 0.4);
+  background: var(--color-accent-glass);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-border);
+  box-shadow: 0 0 12px var(--color-accent-glow);
 }
 
 .formArea {
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-card-border);
-  border-radius: 16px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-xl);
   padding: 28px 24px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.05) inset,
+    0 16px 48px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }

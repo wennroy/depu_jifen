@@ -1,3 +1,4 @@
+import { LogIn, Dice5, Coins, ArrowRightLeft, Wrench } from 'lucide-react';
 import type { TransactionLog } from '../../stores/gameStore';
 import styles from './GameLog.module.css';
 
@@ -5,12 +6,12 @@ interface Props {
   transactions: TransactionLog[];
 }
 
-const TX_ICONS: Record<string, string> = {
-  join: '📥',
-  bet: '🎲',
-  settle: '💰',
-  transfer: '💸',
-  adjust: '🔧',
+const TX_ICONS: Record<string, React.ReactNode> = {
+  join: <LogIn size={14} />,
+  bet: <Dice5 size={14} />,
+  settle: <Coins size={14} />,
+  transfer: <ArrowRightLeft size={14} />,
+  adjust: <Wrench size={14} />,
 };
 
 const TX_LABELS: Record<string, string> = {
@@ -30,7 +31,7 @@ export default function GameLog({ transactions }: Props) {
       <div className={styles.list}>
         {transactions.slice(0, 20).map(tx => (
           <div key={tx.id} className={styles.item}>
-            <span className={styles.icon}>{TX_ICONS[tx.tx_type] || '📝'}</span>
+            <span className={styles.icon}>{TX_ICONS[tx.tx_type] || <Coins size={14} />}</span>
             <div className={styles.info}>
               <span className={styles.desc}>
                 {tx.note || `${TX_LABELS[tx.tx_type] || tx.tx_type} ${tx.amount}`}

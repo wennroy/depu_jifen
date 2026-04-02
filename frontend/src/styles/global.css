@@ -1,24 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+/* ============================================
+   Design System: Modern Dark Cinema + Luxury Gold
+   Style: Glassmorphism / Dark Premium
+   Font: Chakra Petch (display) + Inter (body)
+   ============================================ */
 
 :root {
-  --color-bg-primary: #0a1e12;
-  --color-bg-secondary: #122a1a;
-  --color-felt-green: #1a6b3c;
-  --color-felt-dark: #0d4a25;
-  --color-gold: #d4af37;
-  --color-gold-light: #f0d878;
-  --color-gold-dim: #a68a2a;
-  --color-chip-red: #cc3333;
-  --color-chip-blue: #3355cc;
-  --color-text-primary: #f5f0e8;
-  --color-text-secondary: #b8c4a8;
-  --color-text-muted: #6b7d5c;
-  --color-card-bg: rgba(18, 42, 26, 0.85);
-  --color-card-border: rgba(212, 175, 55, 0.2);
-  --color-success: #4caf50;
-  --color-danger: #e74c3c;
-  --font-display: 'Playfair Display', serif;
+  /* Background layers (deep → elevated) */
+  --color-bg-deep: #050506;
+  --color-bg-base: #0a0a0c;
+  --color-bg-elevated: #111113;
+  --color-bg-surface: #18181b;
+
+  /* Accent: Warm Gold */
+  --color-accent: #E2B050;
+  --color-accent-bright: #F5D680;
+  --color-accent-dim: #A07C2A;
+  --color-accent-glow: rgba(226, 176, 80, 0.15);
+
+  /* Semantic */
+  --color-success: #34D399;
+  --color-danger: #F87171;
+  --color-warning: #FBBF24;
+
+  /* Text */
+  --color-text-primary: #EDEDEF;
+  --color-text-secondary: #8A8F98;
+  --color-text-muted: #4B5058;
+
+  /* Glass surfaces */
+  --color-glass-bg: rgba(255, 255, 255, 0.04);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-hover: rgba(255, 255, 255, 0.07);
+
+  /* Accent glass */
+  --color-accent-glass: rgba(226, 176, 80, 0.08);
+  --color-accent-border: rgba(226, 176, 80, 0.15);
+
+  /* Chip colors */
+  --color-chip-red: #EF4444;
+  --color-chip-blue: #3B82F6;
+
+  /* Typography */
+  --font-display: 'Chakra Petch', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing & Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
 }
 
 * {
@@ -35,10 +73,11 @@ html, body, #root {
 
 body {
   font-family: var(--font-body);
-  background: linear-gradient(145deg, var(--color-bg-primary), var(--color-bg-secondary));
+  background: var(--color-bg-deep);
   color: var(--color-text-primary);
-  min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom scrollbar */
@@ -49,66 +88,122 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-gold-dim);
+  background: var(--color-text-muted);
   border-radius: 2px;
 }
 
-/* Poker felt background pattern */
+/* Cinema background with ambient glow */
 .felt-bg {
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(26, 107, 60, 0.4) 0%, transparent 70%),
-    linear-gradient(145deg, var(--color-bg-primary), var(--color-bg-secondary));
-  min-height: 100vh;
+  background: var(--color-bg-deep);
+  position: relative;
+  min-height: 100dvh;
+}
+
+.felt-bg::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 60%;
+  background: radial-gradient(ellipse, rgba(226, 176, 80, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.felt-bg::after {
+  content: '';
+  position: fixed;
+  bottom: -10%;
+  left: 30%;
+  width: 60%;
+  height: 40%;
+  background: radial-gradient(ellipse, rgba(52, 211, 153, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.felt-bg > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Gold gradient text */
 .gold-text {
-  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-bright));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Glass card effect */
+/* Glass card */
 .glass-card {
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-card-border);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* Chip animation */
-@keyframes chipBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
+/* Animations */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50% { opacity: 0.5; }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Utility */
 .animate-fade-in {
-  animation: fadeInUp 0.4s ease-out;
+  animation: fadeInUp var(--duration-slow) var(--ease-out);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Override antd-mobile theme */
 :root:root {
-  --adm-color-primary: #d4af37;
-  --adm-color-success: #4caf50;
-  --adm-color-danger: #e74c3c;
-  --adm-color-warning: #f39c12;
-  --adm-color-text: #f5f0e8;
-  --adm-color-text-secondary: #b8c4a8;
-  --adm-color-fill-content: rgba(18, 42, 26, 0.85);
-  --adm-color-background: #0a1e12;
-  --adm-border-color: rgba(212, 175, 55, 0.2);
+  --adm-color-primary: #E2B050;
+  --adm-color-success: #34D399;
+  --adm-color-danger: #F87171;
+  --adm-color-warning: #FBBF24;
+  --adm-color-text: #EDEDEF;
+  --adm-color-text-secondary: #8A8F98;
+  --adm-color-fill-content: rgba(255, 255, 255, 0.04);
+  --adm-color-background: #050506;
+  --adm-border-color: rgba(255, 255, 255, 0.08);
   --adm-font-family: var(--font-body);
 }
 
