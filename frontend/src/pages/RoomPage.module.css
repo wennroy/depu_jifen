@@ -1,0 +1,114 @@
+.page {
+  min-height: 100vh;
+  padding: 0 16px 100px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-card-border);
+  margin-bottom: 16px;
+}
+
+.headerLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.roomName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-gold-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roomMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.roomCode {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.round {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.online {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+}
+
+.offline {
+  background: var(--color-danger);
+  animation: pulse 1.5s infinite;
+}
+
+.shareBtn {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--color-gold);
+  border-radius: 8px;
+  color: var(--color-gold);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.shareBtn:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.myChips {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(26, 107, 60, 0.4), rgba(13, 74, 37, 0.4));
+  border: 1px solid var(--color-card-border);
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.myChipsLabel {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.myChipsValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

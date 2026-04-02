@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+
+:root {
+  --color-bg-primary: #0a1e12;
+  --color-bg-secondary: #122a1a;
+  --color-felt-green: #1a6b3c;
+  --color-felt-dark: #0d4a25;
+  --color-gold: #d4af37;
+  --color-gold-light: #f0d878;
+  --color-gold-dim: #a68a2a;
+  --color-chip-red: #cc3333;
+  --color-chip-blue: #3355cc;
+  --color-text-primary: #f5f0e8;
+  --color-text-secondary: #b8c4a8;
+  --color-text-muted: #6b7d5c;
+  --color-card-bg: rgba(18, 42, 26, 0.85);
+  --color-card-border: rgba(212, 175, 55, 0.2);
+  --color-success: #4caf50;
+  --color-danger: #e74c3c;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  background: linear-gradient(145deg, var(--color-bg-primary), var(--color-bg-secondary));
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-dim);
+  border-radius: 2px;
+}
+
+/* Poker felt background pattern */
+.felt-bg {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(26, 107, 60, 0.4) 0%, transparent 70%),
+    linear-gradient(145deg, var(--color-bg-primary), var(--color-bg-secondary));
+  min-height: 100vh;
+}
+
+/* Gold gradient text */
+.gold-text {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card effect */
+.glass-card {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Chip animation */
+@keyframes chipBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* Override antd-mobile theme */
+:root:root {
+  --adm-color-primary: #d4af37;
+  --adm-color-success: #4caf50;
+  --adm-color-danger: #e74c3c;
+  --adm-color-warning: #f39c12;
+  --adm-color-text: #f5f0e8;
+  --adm-color-text-secondary: #b8c4a8;
+  --adm-color-fill-content: rgba(18, 42, 26, 0.85);
+  --adm-color-background: #0a1e12;
+  --adm-border-color: rgba(212, 175, 55, 0.2);
+  --adm-font-family: var(--font-body);
+}
+
+.adm-input-element, .adm-text-area-element {
+  color: var(--color-text-primary) !important;
+}

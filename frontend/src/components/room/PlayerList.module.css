@@ -1,0 +1,109 @@
+.container {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  border-radius: 12px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  border-color: var(--color-gold-dim);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card:active {
+  transform: translateY(0);
+}
+
+.cardMe {
+  border-color: var(--color-gold-dim);
+  background: linear-gradient(145deg, rgba(26, 107, 60, 0.3), var(--color-card-bg));
+  cursor: default;
+}
+
+.cardMe:hover {
+  transform: none;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rank {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.adjustBtn {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid var(--color-gold-dim);
+  border-radius: 4px;
+  color: var(--color-gold);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.username {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meBadge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  background: var(--color-gold);
+  color: #0a1e12;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.chips {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-gold-light);
+}
+
+.tapHint {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
