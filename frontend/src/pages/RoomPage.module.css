@@ -1,6 +1,6 @@
 .page {
   min-height: 100dvh;
-  padding: 0 16px 100px;
+  padding: 0 12px 32px;
   max-width: 600px;
   margin: 0 auto;
 }
@@ -9,58 +9,98 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--color-glass-border);
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .headerLeft {
-  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
 }
 
 .roomName {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.5px;
-}
-
-.roomMeta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 4px;
 }
 
 .roomCode {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
-  font-weight: 600;
-  letter-spacing: 2px;
   font-family: var(--font-display);
+  letter-spacing: 1px;
+  flex-shrink: 0;
 }
 
-.round {
-  font-size: 0.75rem;
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.iconBtn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent-border);
+}
+
+.iconBtn:active {
+  transform: scale(0.93);
+}
+
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.shareBtn:hover {
+  background: var(--color-accent-glass);
+}
+
+.shareBtn:active {
+  transform: scale(0.93);
 }
 
 .statusDot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .online {
   background: var(--color-success);
-  box-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
 }
 
 .offline {
@@ -68,74 +108,43 @@
   animation: pulse 1.5s infinite;
 }
 
-.shareBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--color-glass-bg);
-  border: 1px solid var(--color-accent-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-accent);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-out);
-  font-family: var(--font-display);
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+/* Player grid */
+.playerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.shareBtn:hover {
-  background: var(--color-accent-glass);
-  box-shadow: 0 0 12px var(--color-accent-glow);
+@media (min-width: 480px) {
+  .playerGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.shareBtn:active {
-  transform: scale(0.97);
-}
-
-.myChips {
+/* My chips bar */
+.myBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 10px 14px;
   background: var(--color-accent-glass);
   border: 1px solid var(--color-accent-border);
-  border-radius: var(--radius-lg);
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.myChips::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 50%;
-  height: 100%;
-  background: radial-gradient(ellipse at 100% 50%, var(--color-accent-glow), transparent);
-  pointer-events: none;
-}
-
-.blinds {
-  font-size: 0.7rem;
-  color: var(--color-accent-dim);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
   font-family: var(--font-display);
-  letter-spacing: 0.5px;
 }
 
-.mySeat {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  margin-left: 8px;
-  font-family: var(--font-display);
+.myBar strong {
+  color: var(--color-accent-bright);
+  font-size: 1.05rem;
 }
 
 .rebuyBtn {
-  padding: 6px 14px;
-  background: var(--color-glass-bg);
+  padding: 5px 14px;
+  background: transparent;
   border: 1px solid var(--color-accent-border);
   border-radius: var(--radius-sm);
   color: var(--color-accent);
@@ -143,9 +152,7 @@
   font-weight: 700;
   cursor: pointer;
   font-family: var(--font-display);
-  letter-spacing: 0.5px;
   transition: all var(--duration-fast) var(--ease-out);
-  white-space: nowrap;
 }
 
 .rebuyBtn:hover {
@@ -154,26 +161,6 @@
 
 .rebuyBtn:active {
   transform: scale(0.95);
-}
-
-.myChipsLabel {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  font-family: var(--font-display);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.myChipsValue {
-  font-size: 2rem;
-  font-weight: 700;
-  font-family: var(--font-display);
-  letter-spacing: 1px;
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-bright));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 @keyframes pulse {

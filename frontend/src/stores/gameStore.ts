@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+export type GamePhase = 'lobby' | 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
+
 export interface Player {
   player_id: string;
   username: string;
@@ -8,6 +10,10 @@ export interface Player {
   seat: number | null;
   total_buyin: number;
   is_preassigned: boolean;
+  round_bet: number;
+  hand_bet: number;
+  is_folded: boolean;
+  is_away: boolean;
 }
 
 export interface TransactionLog {
@@ -29,39 +35,32 @@ interface GameStore {
   roomCode: string | null;
   roomName: string;
   playerToken: string | null;
-  adminToken: string | null;
   playerId: string | null;
   username: string | null;
   currentRound: number;
   status: string;
   smallBlind: number;
   bigBlind: number;
+  gamePhase: GamePhase;
+  dealerSeat: number | null;
+  actionSeat: number | null;
+  pot: number;
+  currentBetLevel: number;
+  bettingComplete: boolean;
   players: Player[];
   transactions: TransactionLog[];
-  isAdmin: boolean;
   wsConnected: boolean;
+  actingForPlayerId: string | null;
 
   setIdentity: (params: {
     roomCode: string;
     playerToken: string;
     playerId: string;
     username: string;
-    adminToken?: string;
   }) => void;
-  setRoomState: (state: {
-    room_code: string;
-    room_name: string;
-    current_round: number;
-    status: string;
-    small_blind: number;
-    big_blind: number;
-    players: Player[];
-    transactions: TransactionLog[];
-    my_player_id: string;
-    is_admin: boolean;
-  }) => void;
-  setIsAdmin: (v: boolean) => void;
+  setRoomState: (state: any) => void;
   setWsConnected: (v: boolean) => void;
+  setActingFor: (playerId: string | null) => void;
   handleWsMessage: (msg: WsMessage) => void;
   clearSession: () => void;
 }
@@ -70,7 +69,6 @@ const STORAGE_PREFIX = 'depu_';
 
 export const getStoredTokens = (roomCode: string) => ({
   playerToken: localStorage.getItem(`${STORAGE_PREFIX}${roomCode}_pt`),
-  adminToken: localStorage.getItem(`${STORAGE_PREFIX}${roomCode}_at`),
   playerId: localStorage.getItem(`${STORAGE_PREFIX}${roomCode}_pid`),
   username: localStorage.getItem(`${STORAGE_PREFIX}${roomCode}_un`),
 });
@@ -79,35 +77,36 @@ export const storeTokens = (roomCode: string, params: {
   playerToken: string;
   playerId: string;
   username: string;
-  adminToken?: string;
 }) => {
   localStorage.setItem(`${STORAGE_PREFIX}${roomCode}_pt`, params.playerToken);
   localStorage.setItem(`${STORAGE_PREFIX}${roomCode}_pid`, params.playerId);
   localStorage.setItem(`${STORAGE_PREFIX}${roomCode}_un`, params.username);
-  if (params.adminToken) {
-    localStorage.setItem(`${STORAGE_PREFIX}${roomCode}_at`, params.adminToken);
-  }
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
   roomCode: null,
   roomName: '',
   playerToken: null,
-  adminToken: null,
   playerId: null,
   username: null,
   currentRound: 0,
   status: 'active',
   smallBlind: 5,
   bigBlind: 10,
+  gamePhase: 'lobby',
+  dealerSeat: null,
+  actionSeat: null,
+  pot: 0,
+  currentBetLevel: 0,
+  bettingComplete: false,
   players: [],
   transactions: [],
-  isAdmin: false,
   wsConnected: false,
+  actingForPlayerId: null,
 
-  setIdentity: ({ roomCode, playerToken, playerId, username, adminToken }) => {
-    storeTokens(roomCode, { playerToken, playerId, username, adminToken });
-    set({ roomCode, playerToken, playerId, username, adminToken: adminToken || null });
+  setIdentity: ({ roomCode, playerToken, playerId, username }) => {
+    storeTokens(roomCode, { playerToken, playerId, username });
+    set({ roomCode, playerToken, playerId, username });
   },
 
   setRoomState: (state) => {
@@ -118,15 +117,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       status: state.status,
       smallBlind: state.small_blind,
       bigBlind: state.big_blind,
+      gamePhase: state.game_phase,
+      dealerSeat: state.dealer_seat,
+      actionSeat: state.action_seat,
+      pot: state.pot,
+      currentBetLevel: state.current_bet_level,
       players: state.players,
       transactions: state.transactions,
       playerId: state.my_player_id,
-      isAdmin: state.is_admin,
+      bettingComplete: false,
     });
   },
 
-  setIsAdmin: (v) => set({ isAdmin: v }),
   setWsConnected: (v) => set({ wsConnected: v }),
+  setActingFor: (playerId) => set({ actingForPlayerId: playerId }),
 
   handleWsMessage: (msg: WsMessage) => {
     const state = get();
@@ -135,7 +139,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const d = msg.data;
         const exists = state.players.find(p => p.player_id === d.player_id);
         if (exists) {
-          // Preassigned player now active
           set({ players: state.players.map(p =>
             p.player_id === d.player_id ? { ...p, is_active: true, chips: d.chips } : p
           )});
@@ -143,7 +146,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set({ players: [...state.players, {
             player_id: d.player_id, username: d.username, chips: d.chips,
             is_active: true, seat: d.seat || null, total_buyin: d.chips,
-            is_preassigned: false,
+            is_preassigned: false, round_bet: 0, hand_bet: 0,
+            is_folded: false, is_away: false,
           }]});
         }
         break;
@@ -153,8 +157,78 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set({ players: [...state.players, {
           player_id: d.player_id, username: d.username, chips: d.chips,
           is_active: false, seat: d.seat, total_buyin: d.chips,
-          is_preassigned: true,
+          is_preassigned: true, round_bet: 0, hand_bet: 0,
+          is_folded: false, is_away: false,
         }]});
+        break;
+      }
+      case 'hand_started': {
+        const d = msg.data;
+        set({
+          gamePhase: d.phase,
+          dealerSeat: d.dealer_seat,
+          actionSeat: d.action_seat,
+          pot: d.pot,
+          currentBetLevel: d.current_bet_level,
+          currentRound: d.round,
+          bettingComplete: false,
+          players: state.players.map(p => {
+            const update = d.players?.find((u: any) => u.player_id === p.player_id);
+            return update ? { ...p, ...update } : p;
+          }),
+        });
+        break;
+      }
+      case 'player_acted': {
+        const d = msg.data;
+        set({
+          pot: d.pot,
+          actionSeat: d.action_seat,
+          gamePhase: d.phase,
+          bettingComplete: d.betting_complete || false,
+          players: state.players.map(p => {
+            if (p.player_id === d.player_id) {
+              return {
+                ...p,
+                chips: d.chips,
+                round_bet: d.round_bet,
+                is_folded: d.action === 'fold' ? true : p.is_folded,
+              };
+            }
+            return p;
+          }),
+        });
+        break;
+      }
+      case 'phase_advanced': {
+        const d = msg.data;
+        set({
+          gamePhase: d.phase,
+          actionSeat: d.action_seat,
+          pot: d.pot,
+          currentBetLevel: d.current_bet_level || 0,
+          bettingComplete: false,
+          players: state.players.map(p => {
+            const update = d.players?.find((u: any) => u.player_id === p.player_id);
+            return update ? { ...p, round_bet: update.round_bet } : { ...p, round_bet: 0 };
+          }),
+        });
+        break;
+      }
+      case 'hand_settled': {
+        const d = msg.data;
+        set({
+          gamePhase: 'lobby',
+          pot: 0,
+          currentBetLevel: 0,
+          actionSeat: null,
+          bettingComplete: false,
+          currentRound: d.round,
+          players: state.players.map(p => {
+            const update = d.players?.find((u: any) => u.player_id === p.player_id);
+            return update ? { ...p, chips: update.chips, round_bet: 0, hand_bet: 0, is_folded: false } : p;
+          }),
+        });
         break;
       }
       case 'chips_updated': {
@@ -163,21 +237,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
           players: state.players.map(p =>
             p.player_id === d.player_id ? { ...p, chips: d.chips } : p
           ),
-        });
-        break;
-      }
-      case 'round_advanced': {
-        set({ currentRound: msg.data.round });
-        break;
-      }
-      case 'round_settled': {
-        const settlements = msg.data.settlements as { player_id: string; new_chips: number }[];
-        set({
-          currentRound: msg.data.round,
-          players: state.players.map(p => {
-            const s = settlements.find(s => s.player_id === p.player_id);
-            return s ? { ...p, chips: s.new_chips } : p;
-          }),
         });
         break;
       }
@@ -194,6 +253,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case 'blinds_updated': {
         set({ smallBlind: msg.data.small_blind, bigBlind: msg.data.big_blind });
+        break;
+      }
+      case 'player_away': {
+        set({
+          players: state.players.map(p =>
+            p.player_id === msg.data.player_id ? { ...p, is_away: msg.data.is_away } : p
+          ),
+        });
         break;
       }
       case 'player_kicked': {
@@ -213,10 +280,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearSession: () => {
     set({
-      roomCode: null, roomName: '', playerToken: null, adminToken: null,
+      roomCode: null, roomName: '', playerToken: null,
       playerId: null, username: null, currentRound: 0, status: 'active',
-      smallBlind: 5, bigBlind: 10,
-      players: [], transactions: [], isAdmin: false, wsConnected: false,
+      smallBlind: 5, bigBlind: 10, gamePhase: 'lobby',
+      dealerSeat: null, actionSeat: null, pot: 0, currentBetLevel: 0,
+      bettingComplete: false, players: [], transactions: [],
+      wsConnected: false, actingForPlayerId: null,
     });
   },
 }));

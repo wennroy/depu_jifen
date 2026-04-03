@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
-import { Share2, Loader2 } from 'lucide-react';
+import { Share2, Loader2, UserPlus, CupSoda } from 'lucide-react';
 import http from '../api/http';
 import { useGameStore, getStoredTokens } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
-import PlayerList from '../components/room/PlayerList';
-import BetPanel from '../components/room/BetPanel';
+import PotDisplay from '../components/room/PotDisplay';
+import PlayerCard from '../components/room/PlayerCard';
+import GameControlButton from '../components/room/GameControlButton';
+import BetActionPanel from '../components/room/BetActionPanel';
+import SettlePanel from '../components/room/SettlePanel';
+import GameLog from '../components/room/GameLog';
 import TransferDialog from '../components/room/TransferDialog';
 import RebuyDialog from '../components/room/RebuyDialog';
-import GameLog from '../components/room/GameLog';
-import AdminToolbar from '../components/admin/AdminToolbar';
-import SettleRoundDialog from '../components/admin/SettleRoundDialog';
-import AdjustChipsDialog from '../components/admin/AdjustChipsDialog';
 import PreassignDialog from '../components/admin/PreassignDialog';
 import DashboardDialog from '../components/admin/DashboardDialog';
 import styles from './RoomPage.module.css';
@@ -33,16 +33,13 @@ export default function RoomPage() {
   const navigate = useNavigate();
   const store = useGameStore();
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
-  const [showSettle, setShowSettle] = useState(false);
-  const [adjustTarget, setAdjustTarget] = useState<string | null>(null);
+  const [showRebuy, setShowRebuy] = useState(false);
   const [showPreassign, setShowPreassign] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
-  const [showRebuy, setShowRebuy] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
 
-  // Restore tokens from localStorage
   useEffect(() => {
     const tokens = getStoredTokens(roomCode);
     if (!tokens.playerToken) {
@@ -54,20 +51,16 @@ export default function RoomPage() {
       playerToken: tokens.playerToken,
       playerId: tokens.playerId || '',
       username: tokens.username || '',
-      adminToken: tokens.adminToken || undefined,
     });
   }, [roomCode]);
 
-  // Fetch room state (pass admin token in header so backend can check)
   useEffect(() => {
     if (!store.playerToken || !roomCode) return;
     const fetchState = async () => {
       try {
-        const headers: Record<string, string> = { 'X-Player-Token': store.playerToken! };
-        if (store.adminToken) {
-          headers['X-Admin-Token'] = store.adminToken;
-        }
-        const { data } = await http.get(`/rooms/${roomCode}/state`, { headers });
+        const { data } = await http.get(`/rooms/${roomCode}/state`, {
+          headers: { 'X-Player-Token': store.playerToken! },
+        });
         store.setRoomState(data);
         setLoaded(true);
       } catch {
@@ -78,7 +71,6 @@ export default function RoomPage() {
     fetchState();
   }, [store.playerToken, roomCode]);
 
-  // WebSocket connection
   useWebSocket(roomCode, store.playerToken);
 
   const handleShare = async () => {
@@ -88,30 +80,42 @@ export default function RoomPage() {
         await navigator.share({ title: store.roomName, text: `来加入德扑局: ${store.roomName}`, url });
         return;
       }
-    } catch {
-      // share cancelled or not supported, fall through
-    }
-    // Clipboard fallback (works on HTTP too)
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      copyToClipboardFallback(url);
-    }
+    } catch { /* cancelled */ }
+    try { await navigator.clipboard.writeText(url); } catch { copyToClipboardFallback(url); }
     Toast.show({ content: '链接已复制', icon: 'success' });
   };
 
   if (!loaded) {
     return (
       <div className="felt-bg" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: 12, color: 'var(--color-accent)' }} />
-          <div style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px' }}>加载中...</div>
-        </div>
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-accent)' }} />
       </div>
     );
   }
 
   const myPlayer = store.players.find(p => p.player_id === store.playerId);
+  const gameActive = store.gamePhase !== 'lobby';
+  const seated = store.players
+    .filter(p => p.seat !== null && (p.is_active || p.is_preassigned))
+    .sort((a, b) => (a.seat || 0) - (b.seat || 0));
+
+  // Determine SB/BB seats
+  const dealerSeat = store.dealerSeat;
+  const seatList = seated.filter(p => p.is_active).map(p => p.seat!);
+  let sbSeat: number | null = null;
+  let bbSeat: number | null = null;
+  if (dealerSeat && seatList.length >= 2) {
+    const dIdx = seatList.indexOf(dealerSeat);
+    if (dIdx !== -1) {
+      if (seatList.length === 2) {
+        sbSeat = seatList[dIdx];
+        bbSeat = seatList[(dIdx + 1) % seatList.length];
+      } else {
+        sbSeat = seatList[(dIdx + 1) % seatList.length];
+        bbSeat = seatList[(dIdx + 2) % seatList.length];
+      }
+    }
+  }
 
   return (
     <div className={`felt-bg ${styles.page}`}>
@@ -119,113 +123,119 @@ export default function RoomPage() {
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <h1 className={styles.roomName}>{store.roomName}</h1>
-          <div className={styles.roomMeta}>
-            <span className={styles.roomCode}>#{roomCode}</span>
-            <span className={styles.round}>R{store.currentRound}</span>
-            <span className={styles.blinds}>盲注 {store.smallBlind}/{store.bigBlind}</span>
-            <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
-          </div>
+          <span className={styles.roomCode}>#{roomCode}</span>
         </div>
-        <button className={styles.shareBtn} onClick={handleShare}>
-          <Share2 size={14} />
-          分享
-        </button>
+        <div className={styles.headerRight}>
+          <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="添加玩家">
+            <UserPlus size={16} />
+          </button>
+          <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单">
+            <CupSoda size={16} />
+          </button>
+          <button className={styles.shareBtn} onClick={handleShare}>
+            <Share2 size={14} />
+          </button>
+          <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
+        </div>
       </header>
 
-      {/* My chips */}
+      {/* Pot & Phase display */}
+      <PotDisplay
+        pot={store.pot}
+        phase={store.gamePhase}
+        currentBetLevel={store.currentBetLevel}
+        round={store.currentRound}
+        smallBlind={store.smallBlind}
+        bigBlind={store.bigBlind}
+      />
+
+      {/* Player cards grid */}
+      <div className={styles.playerGrid}>
+        {seated.map(p => (
+          <PlayerCard
+            key={p.player_id}
+            player={p}
+            isMe={p.player_id === store.playerId}
+            isDealer={p.seat === dealerSeat}
+            isSB={p.seat === sbSeat}
+            isBB={p.seat === bbSeat}
+            isAction={p.seat === store.actionSeat}
+            gameActive={gameActive}
+            onActFor={(pid) => {
+              if (gameActive && p.seat === store.actionSeat) {
+                store.setActingFor(pid);
+              } else if (!gameActive) {
+                setTransferTarget(pid);
+              }
+            }}
+          />
+        ))}
+      </div>
+
+      {/* My chips bar */}
       {myPlayer && (
-        <div className={styles.myChips}>
-          <div>
-            <span className={styles.myChipsLabel}>我的筹码</span>
-            {myPlayer.seat && <span className={styles.mySeat}>座位 {myPlayer.seat}</span>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className={styles.myChipsValue}>{myPlayer.chips.toLocaleString()}</span>
-            <button className={styles.rebuyBtn} onClick={() => setShowRebuy(true)}>买入</button>
-          </div>
+        <div className={styles.myBar}>
+          <span>我的筹码: <strong>{myPlayer.chips.toLocaleString()}</strong></span>
+          <button className={styles.rebuyBtn} onClick={() => setShowRebuy(true)}>买入</button>
         </div>
       )}
 
-      {/* Player list */}
-      <PlayerList
-        players={store.players}
-        myPlayerId={store.playerId || ''}
-        isAdmin={store.isAdmin}
-        onTransfer={setTransferTarget}
-        onAdjust={store.isAdmin ? setAdjustTarget : undefined}
+      {/* Game control / Action panels */}
+      <GameControlButton
+        roomCode={roomCode}
+        playerToken={store.playerToken || ''}
+        phase={store.gamePhase}
+        bettingComplete={store.bettingComplete}
       />
 
-      {/* Bet panel */}
-      <BetPanel roomCode={roomCode} playerToken={store.playerToken || ''} currentChips={myPlayer?.chips || 0} />
+      {gameActive && store.gamePhase !== 'showdown' && store.actionSeat && !store.bettingComplete && (
+        <BetActionPanel />
+      )}
+
+      {store.gamePhase === 'showdown' && (
+        <SettlePanel
+          roomCode={roomCode}
+          playerToken={store.playerToken || ''}
+          pot={store.pot}
+          players={store.players}
+          onSettled={() => {}}
+        />
+      )}
 
       {/* Game log */}
       <GameLog transactions={store.transactions} />
 
-      {/* Admin toolbar */}
-      {store.isAdmin && (
-        <AdminToolbar
-          roomCode={roomCode}
-          adminToken={store.adminToken || ''}
-          onSettle={() => setShowSettle(true)}
-          onPreassign={() => setShowPreassign(true)}
-          onDashboard={() => setShowDashboard(true)}
-        />
-      )}
-
       {/* Dialogs */}
-      {transferTarget && (
+      {transferTarget && myPlayer && (
         <TransferDialog
           roomCode={roomCode}
           playerToken={store.playerToken || ''}
           targetPlayerId={transferTarget}
           targetUsername={store.players.find(p => p.player_id === transferTarget)?.username || ''}
-          currentChips={myPlayer?.chips || 0}
+          currentChips={myPlayer.chips}
           onClose={() => setTransferTarget(null)}
         />
       )}
-
       {showRebuy && (
         <RebuyDialog
           roomCode={roomCode}
           playerToken={store.playerToken || ''}
-          initialChips={store.smallBlind * 200}
+          initialChips={store.bigBlind * 100}
           onClose={() => setShowRebuy(false)}
         />
       )}
-
-      {showSettle && (
-        <SettleRoundDialog
-          roomCode={roomCode}
-          adminToken={store.adminToken || ''}
-          players={store.players.filter(p => p.is_active)}
-          currentRound={store.currentRound}
-          onClose={() => setShowSettle(false)}
-        />
-      )}
-
-      {adjustTarget && (
-        <AdjustChipsDialog
-          roomCode={roomCode}
-          adminToken={store.adminToken || ''}
-          targetPlayerId={adjustTarget}
-          targetUsername={store.players.find(p => p.player_id === adjustTarget)?.username || ''}
-          onClose={() => setAdjustTarget(null)}
-        />
-      )}
-
       {showPreassign && (
         <PreassignDialog
           roomCode={roomCode}
-          adminToken={store.adminToken || ''}
+          adminToken={store.playerToken || ''}
           existingPlayers={store.players}
           onClose={() => setShowPreassign(false)}
         />
       )}
-
       {showDashboard && (
         <DashboardDialog
           roomCode={roomCode}
-          adminToken={store.adminToken || ''}
+          adminToken={store.playerToken || ''}
           onClose={() => setShowDashboard(false)}
         />
       )}

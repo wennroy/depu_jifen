@@ -1,0 +1,125 @@
+.panel {
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.icon {
+  color: var(--color-accent);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-accent);
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nameBtn {
+  flex: 1;
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--duration-fast) ease;
+}
+
+.nameBtn:hover {
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+}
+
+.input {
+  width: 90px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+  text-align: center;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+.remaining {
+  text-align: center;
+  padding: 8px;
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.ok {
+  color: var(--color-success);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.bad {
+  color: var(--color-warning);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.settleBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dim));
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-bg-deep);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.settleBtn:hover:not(:disabled) {
+  box-shadow: 0 4px 16px rgba(226, 176, 80, 0.25);
+}
+
+.settleBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

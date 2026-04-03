@@ -31,7 +31,7 @@ export default function DashboardDialog({ roomCode, adminToken, onClose }: Props
     const fetch = async () => {
       try {
         const { data } = await http.get(`/rooms/${roomCode}/dashboard`, {
-          headers: { 'X-Admin-Token': adminToken },
+          headers: { 'X-Player-Token': adminToken },
         });
         setRecords(data.players);
         setRoomName(data.room_name);

@@ -38,7 +38,7 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
         username: username.trim(),
         seat: seatNum,
         chips: chips ? parseInt(chips) : undefined,
-      }, { headers: { 'X-Admin-Token': adminToken } });
+      }, { headers: { 'X-Player-Token': adminToken } });
       Toast.show({ content: `已添加 ${username.trim()} → 座位 ${seatNum}`, icon: 'success' });
       // Reset for next player, auto-increment seat
       setUsername('');
