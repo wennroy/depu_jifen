@@ -68,11 +68,10 @@ def preassign_player(db: Session, room: Room, username: str, seat: int, chips: i
     """Admin pre-creates a player slot. The actual user claims it by joining with the same username."""
     initial = chips if chips is not None else room.initial_chips
 
-    # Check seat not taken
+    # Check seat not taken (include preassigned but inactive)
     existing_seat = db.query(Player).filter(
         Player.room_id == room.id,
         Player.seat == seat,
-        Player.is_active == True,
     ).first()
     if existing_seat:
         raise ValueError(f"座位 {seat} 已被 {existing_seat.username} 占用")
