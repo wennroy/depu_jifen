@@ -31,10 +31,8 @@ def api_room_info(room_code: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "房间不存在")
     active_count = sum(1 for p in room.players if p.is_active)
     return RoomInfoResponse(
-        room_code=room.room_code,
-        name=room.name,
-        player_count=active_count,
-        status=room.status,
+        room_code=room.room_code, name=room.name,
+        player_count=active_count, status=room.status,
         initial_chips=room.initial_chips,
     )
 
@@ -45,14 +43,11 @@ async def api_join_room(room_code: str, req: JoinRoomRequest, db: Session = Depe
         result = join_room(db, room_code.upper(), req.username)
     except ValueError as e:
         raise HTTPException(400, str(e))
-
     await manager.broadcast(room_code.upper(), {
         "type": "player_joined",
         "data": {
-            "player_id": result["player_id"],
-            "username": req.username,
-            "chips": result["chips"],
-            "seat": result.get("seat"),
+            "player_id": result["player_id"], "username": req.username,
+            "chips": result["chips"], "seat": result.get("seat"),
         },
     })
     return result
@@ -62,65 +57,47 @@ async def api_join_room(room_code: str, req: JoinRoomRequest, db: Session = Depe
 def api_room_state(
     room_code: str,
     x_player_token: str = Header(...),
-    x_admin_token: str = Header(default=""),
     db: Session = Depends(get_db),
 ):
     room = db.query(Room).filter(Room.room_code == room_code.upper()).first()
     if not room:
         raise HTTPException(404, "房间不存在")
-
     player = db.query(Player).filter(
-        Player.room_id == room.id,
-        Player.player_token == x_player_token,
+        Player.room_id == room.id, Player.player_token == x_player_token,
     ).first()
     if not player:
         raise HTTPException(403, "无效的玩家令牌")
 
     players = [
         PlayerState(
-            player_id=p.id,
-            username=p.username,
-            chips=p.chips,
-            is_active=p.is_active,
-            seat=p.seat,
-            total_buyin=p.total_buyin,
-            is_preassigned=p.is_preassigned,
+            player_id=p.id, username=p.username, chips=p.chips, is_active=p.is_active,
+            seat=p.seat, total_buyin=p.total_buyin, is_preassigned=p.is_preassigned,
+            round_bet=p.round_bet, hand_bet=p.hand_bet, is_folded=p.is_folded, is_away=p.is_away,
         )
         for p in room.players
     ]
 
     recent_txs = (
-        db.query(Transaction)
-        .filter(Transaction.room_id == room.id)
-        .order_by(Transaction.created_at.desc())
-        .limit(50)
-        .all()
+        db.query(Transaction).filter(Transaction.room_id == room.id)
+        .order_by(Transaction.created_at.desc()).limit(50).all()
     )
-
-    transactions = []
-    for tx in recent_txs:
-        transactions.append(TransactionLog(
-            id=tx.id,
-            tx_type=tx.tx_type,
+    transactions = [
+        TransactionLog(
+            id=tx.id, tx_type=tx.tx_type,
             from_username=tx.from_player.username if tx.from_player else None,
             to_username=tx.to_player.username if tx.to_player else None,
-            amount=tx.amount,
-            note=tx.note,
-            created_at=tx.created_at.isoformat(),
-        ))
-
-    # Check admin in-band
-    is_admin = bool(x_admin_token and x_admin_token == room.admin_token)
+            amount=tx.amount, note=tx.note, created_at=tx.created_at.isoformat(),
+        )
+        for tx in recent_txs
+    ]
 
     return RoomStateResponse(
-        room_code=room.room_code,
-        room_name=room.name,
-        current_round=room.current_round,
-        status=room.status,
-        small_blind=room.small_blind,
-        big_blind=room.big_blind,
-        players=players,
-        transactions=transactions,
-        is_admin=is_admin,
+        room_code=room.room_code, room_name=room.name,
+        current_round=room.current_round, status=room.status,
+        small_blind=room.small_blind, big_blind=room.big_blind,
+        game_phase=room.game_phase, dealer_seat=room.dealer_seat,
+        action_seat=room.action_seat, pot=room.pot,
+        current_bet_level=room.current_bet_level,
+        players=players, transactions=transactions,
         my_player_id=player.id,
     )

@@ -46,6 +46,10 @@ class PlayerState(BaseModel):
     seat: int | None = None
     total_buyin: int = 0
     is_preassigned: bool = False
+    round_bet: int = 0
+    hand_bet: int = 0
+    is_folded: bool = False
+    is_away: bool = False
 
 
 class TransactionLog(BaseModel):
@@ -65,17 +69,37 @@ class RoomStateResponse(BaseModel):
     status: str
     small_blind: int
     big_blind: int
+    game_phase: str
+    dealer_seat: int | None
+    action_seat: int | None
+    pot: int
+    current_bet_level: int
     players: list[PlayerState]
     transactions: list[TransactionLog]
-    is_admin: bool
     my_player_id: str
 
 
-# Admin pre-assign players
+# Game actions
+class PlayerActionRequest(BaseModel):
+    target_player_id: str
+    action: str = Field(..., pattern="^(call|fold|raise|allin)$")
+    amount: int = Field(default=0, ge=0)
+
+
+class SettleHandRequest(BaseModel):
+    winners: list[dict]  # [{player_id: str, amount: int}]
+
+
+class SetAwayRequest(BaseModel):
+    player_id: str
+    away: bool
+
+
+# Room management (no admin restriction)
 class PreassignPlayerRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     seat: int = Field(..., ge=1, le=10)
-    chips: int | None = None  # None = use room default
+    chips: int | None = None
 
 
 class UpdateBlindsRequest(BaseModel):
@@ -85,3 +109,22 @@ class UpdateBlindsRequest(BaseModel):
 
 class RebuyRequest(BaseModel):
     amount: int = Field(..., gt=0)
+
+
+class BetRequest(BaseModel):
+    amount: int = Field(..., gt=0)
+
+
+class TransferRequest(BaseModel):
+    to_player_id: str
+    amount: int = Field(..., gt=0)
+
+
+class AdjustRequest(BaseModel):
+    player_id: str
+    amount: int
+    note: str = ""
+
+
+class KickRequest(BaseModel):
+    player_id: str

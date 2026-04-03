@@ -19,6 +19,13 @@ class Player(Base):
     seat = Column(Integer, nullable=True)
     is_preassigned = Column(Boolean, nullable=False, default=False)
     total_buyin = Column(Integer, nullable=False, default=0)
+
+    # Per-hand state (reset each hand)
+    round_bet = Column(Integer, nullable=False, default=0)
+    hand_bet = Column(Integer, nullable=False, default=0)
+    is_folded = Column(Boolean, nullable=False, default=False)
+    is_away = Column(Boolean, nullable=False, default=False)
+
     joined_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     room = relationship("Room", back_populates="players")
