@@ -15,6 +15,8 @@ class Room(Base):
     name = Column(String(100), nullable=False)
     admin_token = Column(String, nullable=False)
     initial_chips = Column(Integer, nullable=False, default=1000)
+    small_blind = Column(Integer, nullable=False, default=5)
+    big_blind = Column(Integer, nullable=False, default=10)
     status = Column(String(20), nullable=False, default="active")
     current_round = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))

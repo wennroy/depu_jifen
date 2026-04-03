@@ -17,7 +17,8 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
 @router.post("", response_model=CreateRoomResponse)
 def api_create_room(req: CreateRoomRequest, request: Request, db: Session = Depends(get_db)):
-    result = create_room(db, req.name, req.admin_username, req.initial_chips)
+    result = create_room(db, req.name, req.admin_username, req.initial_chips,
+                         req.small_blind, req.big_blind)
     base_url = str(request.base_url).rstrip("/")
     result["share_link"] = f"{base_url}/join/{result['room_code']}"
     return result
@@ -51,6 +52,7 @@ async def api_join_room(room_code: str, req: JoinRoomRequest, db: Session = Depe
             "player_id": result["player_id"],
             "username": req.username,
             "chips": result["chips"],
+            "seat": result.get("seat"),
         },
     })
     return result
@@ -60,6 +62,7 @@ async def api_join_room(room_code: str, req: JoinRoomRequest, db: Session = Depe
 def api_room_state(
     room_code: str,
     x_player_token: str = Header(...),
+    x_admin_token: str = Header(default=""),
     db: Session = Depends(get_db),
 ):
     room = db.query(Room).filter(Room.room_code == room_code.upper()).first()
@@ -79,6 +82,9 @@ def api_room_state(
             username=p.username,
             chips=p.chips,
             is_active=p.is_active,
+            seat=p.seat,
+            total_buyin=p.total_buyin,
+            is_preassigned=p.is_preassigned,
         )
         for p in room.players
     ]
@@ -103,21 +109,16 @@ def api_room_state(
             created_at=tx.created_at.isoformat(),
         ))
 
-    is_admin = room.admin_token == db.query(Room).filter(
-        Room.room_code == room_code.upper()
-    ).first().admin_token and any(
-        p.player_token == x_player_token for p in room.players
-    )
-    # Simpler: check if the player's token matches any admin relationship
-    # We'll pass admin status via a header check in frontend
-    # For now, check if there's an admin_token header too
-    is_admin = False  # Will be set by frontend based on stored admin_token
+    # Check admin in-band
+    is_admin = bool(x_admin_token and x_admin_token == room.admin_token)
 
     return RoomStateResponse(
         room_code=room.room_code,
         room_name=room.name,
         current_round=room.current_round,
         status=room.status,
+        small_blind=room.small_blind,
+        big_blind=room.big_blind,
         players=players,
         transactions=transactions,
         is_admin=is_admin,

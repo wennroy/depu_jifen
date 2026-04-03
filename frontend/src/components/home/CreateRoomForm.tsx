@@ -9,6 +9,8 @@ export default function CreateRoomForm() {
   const [roomName, setRoomName] = useState('');
   const [username, setUsername] = useState('');
   const [initialChips, setInitialChips] = useState(1000);
+  const [smallBlind, setSmallBlind] = useState(5);
+  const [bigBlind, setBigBlind] = useState(10);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const setIdentity = useGameStore(s => s.setIdentity);
@@ -25,6 +27,8 @@ export default function CreateRoomForm() {
         name: roomName.trim(),
         admin_username: username.trim(),
         initial_chips: initialChips,
+        small_blind: smallBlind,
+        big_blind: bigBlind,
       });
       setIdentity({
         roomCode: data.room_code,
@@ -74,6 +78,28 @@ export default function CreateRoomForm() {
           min={100}
           max={1000000}
         />
+      </div>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div className={styles.field} style={{ flex: 1 }}>
+          <label className={styles.label}>小盲</label>
+          <input
+            className={styles.input}
+            type="number"
+            value={smallBlind}
+            onChange={e => setSmallBlind(Math.max(1, parseInt(e.target.value) || 1))}
+            min={1}
+          />
+        </div>
+        <div className={styles.field} style={{ flex: 1 }}>
+          <label className={styles.label}>大盲</label>
+          <input
+            className={styles.input}
+            type="number"
+            value={bigBlind}
+            onChange={e => setBigBlind(Math.max(1, parseInt(e.target.value) || 1))}
+            min={1}
+          />
+        </div>
       </div>
       <button className={styles.submitBtn} type="submit" disabled={loading}>
         {loading ? '创建中...' : '创建房间'}

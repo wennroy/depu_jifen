@@ -5,6 +5,9 @@ export interface Player {
   username: string;
   chips: number;
   is_active: boolean;
+  seat: number | null;
+  total_buyin: number;
+  is_preassigned: boolean;
 }
 
 export interface TransactionLog {
@@ -31,6 +34,8 @@ interface GameStore {
   username: string | null;
   currentRound: number;
   status: string;
+  smallBlind: number;
+  bigBlind: number;
   players: Player[];
   transactions: TransactionLog[];
   isAdmin: boolean;
@@ -48,9 +53,12 @@ interface GameStore {
     room_name: string;
     current_round: number;
     status: string;
+    small_blind: number;
+    big_blind: number;
     players: Player[];
     transactions: TransactionLog[];
     my_player_id: string;
+    is_admin: boolean;
   }) => void;
   setIsAdmin: (v: boolean) => void;
   setWsConnected: (v: boolean) => void;
@@ -90,6 +98,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   username: null,
   currentRound: 0,
   status: 'active',
+  smallBlind: 5,
+  bigBlind: 10,
   players: [],
   transactions: [],
   isAdmin: false,
@@ -106,9 +116,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       roomName: state.room_name,
       currentRound: state.current_round,
       status: state.status,
+      smallBlind: state.small_blind,
+      bigBlind: state.big_blind,
       players: state.players,
       transactions: state.transactions,
       playerId: state.my_player_id,
+      isAdmin: state.is_admin,
     });
   },
 
@@ -121,9 +134,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'player_joined': {
         const d = msg.data;
         const exists = state.players.find(p => p.player_id === d.player_id);
-        if (!exists) {
-          set({ players: [...state.players, { player_id: d.player_id, username: d.username, chips: d.chips, is_active: true }] });
+        if (exists) {
+          // Preassigned player now active
+          set({ players: state.players.map(p =>
+            p.player_id === d.player_id ? { ...p, is_active: true, chips: d.chips } : p
+          )});
+        } else {
+          set({ players: [...state.players, {
+            player_id: d.player_id, username: d.username, chips: d.chips,
+            is_active: true, seat: d.seat || null, total_buyin: d.chips,
+            is_preassigned: false,
+          }]});
         }
+        break;
+      }
+      case 'player_preassigned': {
+        const d = msg.data;
+        set({ players: [...state.players, {
+          player_id: d.player_id, username: d.username, chips: d.chips,
+          is_active: false, seat: d.seat, total_buyin: d.chips,
+          is_preassigned: true,
+        }]});
         break;
       }
       case 'chips_updated': {
@@ -161,6 +192,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         break;
       }
+      case 'blinds_updated': {
+        set({ smallBlind: msg.data.small_blind, bigBlind: msg.data.big_blind });
+        break;
+      }
       case 'player_kicked': {
         set({
           players: state.players.map(p =>
@@ -180,6 +215,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       roomCode: null, roomName: '', playerToken: null, adminToken: null,
       playerId: null, username: null, currentRound: 0, status: 'active',
+      smallBlind: 5, bigBlind: 10,
       players: [], transactions: [], isAdmin: false, wsConnected: false,
     });
   },

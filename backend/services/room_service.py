@@ -16,7 +16,8 @@ def generate_room_code(db: Session, length: int = 6) -> str:
     raise RuntimeError("Failed to generate unique room code")
 
 
-def create_room(db: Session, name: str, admin_username: str, initial_chips: int) -> dict:
+def create_room(db: Session, name: str, admin_username: str, initial_chips: int,
+                small_blind: int = 5, big_blind: int = 10) -> dict:
     room_code = generate_room_code(db)
     admin_token = str(uuid4())
 
@@ -25,17 +26,21 @@ def create_room(db: Session, name: str, admin_username: str, initial_chips: int)
         name=name,
         admin_token=admin_token,
         initial_chips=initial_chips,
+        small_blind=small_blind,
+        big_blind=big_blind,
     )
     db.add(room)
     db.flush()
 
-    # Admin auto-joins as player
+    # Admin auto-joins as player at seat 1
     player_token = str(uuid4())
     player = Player(
         room_id=room.id,
         username=admin_username,
         chips=initial_chips,
         player_token=player_token,
+        seat=1,
+        total_buyin=initial_chips,
     )
     db.add(player)
     db.flush()
@@ -59,6 +64,52 @@ def create_room(db: Session, name: str, admin_username: str, initial_chips: int)
     }
 
 
+def preassign_player(db: Session, room: Room, username: str, seat: int, chips: int | None = None) -> Player:
+    """Admin pre-creates a player slot. The actual user claims it by joining with the same username."""
+    initial = chips if chips is not None else room.initial_chips
+
+    # Check seat not taken
+    existing_seat = db.query(Player).filter(
+        Player.room_id == room.id,
+        Player.seat == seat,
+        Player.is_active == True,
+    ).first()
+    if existing_seat:
+        raise ValueError(f"座位 {seat} 已被 {existing_seat.username} 占用")
+
+    # Check username not taken
+    existing_name = db.query(Player).filter(
+        Player.room_id == room.id,
+        Player.username == username,
+    ).first()
+    if existing_name:
+        raise ValueError(f"昵称 {username} 已存在")
+
+    player = Player(
+        room_id=room.id,
+        username=username,
+        chips=initial,
+        player_token=str(uuid4()),
+        seat=seat,
+        is_preassigned=True,
+        is_active=False,  # Not active until claimed
+        total_buyin=initial,
+    )
+    db.add(player)
+    db.flush()
+
+    tx = Transaction(
+        room_id=room.id,
+        tx_type="join",
+        to_player_id=player.id,
+        amount=initial,
+        note=f"管理员预分配 {username} 到座位 {seat}",
+    )
+    db.add(tx)
+    db.commit()
+    return player
+
+
 def join_room(db: Session, room_code: str, username: str) -> dict:
     room = db.query(Room).filter(Room.room_code == room_code).first()
     if not room:
@@ -71,14 +122,28 @@ def join_room(db: Session, room_code: str, username: str) -> dict:
         Player.username == username,
     ).first()
 
+    # Claim a preassigned slot
+    if existing and existing.is_preassigned and not existing.is_active:
+        existing.is_active = True
+        existing.player_token = str(uuid4())
+        db.commit()
+        return {
+            "player_id": existing.id,
+            "player_token": existing.player_token,
+            "chips": existing.chips,
+            "room_name": room.name,
+            "seat": existing.seat,
+        }
+
     if existing and existing.is_active:
         raise ValueError("该昵称已被使用")
 
-    # If player was kicked and rejoins
+    # Kicked player rejoining
     if existing and not existing.is_active:
         existing.is_active = True
         existing.chips = room.initial_chips
         existing.player_token = str(uuid4())
+        existing.total_buyin = room.initial_chips
         db.flush()
         tx = Transaction(
             room_id=room.id,
@@ -94,7 +159,14 @@ def join_room(db: Session, room_code: str, username: str) -> dict:
             "player_token": existing.player_token,
             "chips": existing.chips,
             "room_name": room.name,
+            "seat": existing.seat,
         }
+
+    # Auto-assign next available seat
+    taken_seats = {p.seat for p in room.players if p.seat is not None}
+    next_seat = 1
+    while next_seat in taken_seats:
+        next_seat += 1
 
     player_token = str(uuid4())
     player = Player(
@@ -102,6 +174,8 @@ def join_room(db: Session, room_code: str, username: str) -> dict:
         username=username,
         chips=room.initial_chips,
         player_token=player_token,
+        seat=next_seat,
+        total_buyin=room.initial_chips,
     )
     db.add(player)
     db.flush()
@@ -121,4 +195,5 @@ def join_room(db: Session, room_code: str, username: str) -> dict:
         "player_token": player_token,
         "chips": player.chips,
         "room_name": room.name,
+        "seat": player.seat,
     }

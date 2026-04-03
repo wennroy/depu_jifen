@@ -8,11 +8,25 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import PlayerList from '../components/room/PlayerList';
 import BetPanel from '../components/room/BetPanel';
 import TransferDialog from '../components/room/TransferDialog';
+import RebuyDialog from '../components/room/RebuyDialog';
 import GameLog from '../components/room/GameLog';
 import AdminToolbar from '../components/admin/AdminToolbar';
 import SettleRoundDialog from '../components/admin/SettleRoundDialog';
 import AdjustChipsDialog from '../components/admin/AdjustChipsDialog';
+import PreassignDialog from '../components/admin/PreassignDialog';
+import DashboardDialog from '../components/admin/DashboardDialog';
 import styles from './RoomPage.module.css';
+
+function copyToClipboardFallback(text: string) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+}
 
 export default function RoomPage() {
   const { roomCode: urlRoomCode } = useParams<{ roomCode: string }>();
@@ -21,6 +35,9 @@ export default function RoomPage() {
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [showSettle, setShowSettle] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<string | null>(null);
+  const [showPreassign, setShowPreassign] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showRebuy, setShowRebuy] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
@@ -41,14 +58,16 @@ export default function RoomPage() {
     });
   }, [roomCode]);
 
-  // Fetch room state
+  // Fetch room state (pass admin token in header so backend can check)
   useEffect(() => {
     if (!store.playerToken || !roomCode) return;
     const fetchState = async () => {
       try {
-        const { data } = await http.get(`/rooms/${roomCode}/state`, {
-          headers: { 'X-Player-Token': store.playerToken },
-        });
+        const headers: Record<string, string> = { 'X-Player-Token': store.playerToken! };
+        if (store.adminToken) {
+          headers['X-Admin-Token'] = store.adminToken;
+        }
+        const { data } = await http.get(`/rooms/${roomCode}/state`, { headers });
         store.setRoomState(data);
         setLoaded(true);
       } catch {
@@ -59,22 +78,6 @@ export default function RoomPage() {
     fetchState();
   }, [store.playerToken, roomCode]);
 
-  // Check admin status
-  useEffect(() => {
-    if (!store.adminToken || !roomCode) return;
-    const checkAdmin = async () => {
-      try {
-        const { data } = await http.post(`/rooms/${roomCode}/check-admin`, {}, {
-          headers: { 'X-Admin-Token': store.adminToken },
-        });
-        store.setIsAdmin(data.is_admin);
-      } catch {
-        store.setIsAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, [store.adminToken, roomCode]);
-
   // WebSocket connection
   useWebSocket(roomCode, store.playerToken);
 
@@ -83,14 +86,18 @@ export default function RoomPage() {
     try {
       if (navigator.share) {
         await navigator.share({ title: store.roomName, text: `来加入德扑局: ${store.roomName}`, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        Toast.show({ content: '链接已复制', icon: 'success' });
+        return;
       }
     } catch {
-      await navigator.clipboard.writeText(url);
-      Toast.show({ content: '链接已复制', icon: 'success' });
+      // share cancelled or not supported, fall through
     }
+    // Clipboard fallback (works on HTTP too)
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      copyToClipboardFallback(url);
+    }
+    Toast.show({ content: '链接已复制', icon: 'success' });
   };
 
   if (!loaded) {
@@ -114,7 +121,8 @@ export default function RoomPage() {
           <h1 className={styles.roomName}>{store.roomName}</h1>
           <div className={styles.roomMeta}>
             <span className={styles.roomCode}>#{roomCode}</span>
-            <span className={styles.round}>第 {store.currentRound} 局</span>
+            <span className={styles.round}>R{store.currentRound}</span>
+            <span className={styles.blinds}>盲注 {store.smallBlind}/{store.bigBlind}</span>
             <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
           </div>
         </div>
@@ -127,8 +135,14 @@ export default function RoomPage() {
       {/* My chips */}
       {myPlayer && (
         <div className={styles.myChips}>
-          <span className={styles.myChipsLabel}>我的筹码</span>
-          <span className={styles.myChipsValue}>{myPlayer.chips.toLocaleString()}</span>
+          <div>
+            <span className={styles.myChipsLabel}>我的筹码</span>
+            {myPlayer.seat && <span className={styles.mySeat}>座位 {myPlayer.seat}</span>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className={styles.myChipsValue}>{myPlayer.chips.toLocaleString()}</span>
+            <button className={styles.rebuyBtn} onClick={() => setShowRebuy(true)}>买入</button>
+          </div>
         </div>
       )}
 
@@ -153,6 +167,8 @@ export default function RoomPage() {
           roomCode={roomCode}
           adminToken={store.adminToken || ''}
           onSettle={() => setShowSettle(true)}
+          onPreassign={() => setShowPreassign(true)}
+          onDashboard={() => setShowDashboard(true)}
         />
       )}
 
@@ -165,6 +181,15 @@ export default function RoomPage() {
           targetUsername={store.players.find(p => p.player_id === transferTarget)?.username || ''}
           currentChips={myPlayer?.chips || 0}
           onClose={() => setTransferTarget(null)}
+        />
+      )}
+
+      {showRebuy && (
+        <RebuyDialog
+          roomCode={roomCode}
+          playerToken={store.playerToken || ''}
+          initialChips={store.smallBlind * 200}
+          onClose={() => setShowRebuy(false)}
         />
       )}
 
@@ -185,6 +210,23 @@ export default function RoomPage() {
           targetPlayerId={adjustTarget}
           targetUsername={store.players.find(p => p.player_id === adjustTarget)?.username || ''}
           onClose={() => setAdjustTarget(null)}
+        />
+      )}
+
+      {showPreassign && (
+        <PreassignDialog
+          roomCode={roomCode}
+          adminToken={store.adminToken || ''}
+          existingPlayers={store.players}
+          onClose={() => setShowPreassign(false)}
+        />
+      )}
+
+      {showDashboard && (
+        <DashboardDialog
+          roomCode={roomCode}
+          adminToken={store.adminToken || ''}
+          onClose={() => setShowDashboard(false)}
         />
       )}
     </div>

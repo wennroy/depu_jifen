@@ -16,6 +16,9 @@ class Player(Base):
     chips = Column(Integer, nullable=False)
     player_token = Column(String, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    seat = Column(Integer, nullable=True)
+    is_preassigned = Column(Boolean, nullable=False, default=False)
+    total_buyin = Column(Integer, nullable=False, default=0)
     joined_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     room = relationship("Room", back_populates="players")
