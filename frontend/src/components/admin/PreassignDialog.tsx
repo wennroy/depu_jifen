@@ -11,9 +11,16 @@ interface Props {
   onClose: () => void;
 }
 
+function getNextSeat(players: Player[]): number {
+  const taken = new Set(players.map(p => p.seat).filter((s): s is number => s !== null));
+  let next = 1;
+  while (taken.has(next)) next++;
+  return next;
+}
+
 export default function PreassignDialog({ roomCode, adminToken, existingPlayers, onClose }: Props) {
   const [username, setUsername] = useState('');
-  const [seat, setSeat] = useState('');
+  const [seat, setSeat] = useState(() => String(getNextSeat(existingPlayers)));
   const [chips, setChips] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +31,7 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
       Toast.show({ content: '请输入玩家昵称' });
       return;
     }
-    const seatNum = parseInt(seat);
-    if (!seatNum || seatNum < 1 || seatNum > 10) {
-      Toast.show({ content: '请输入有效座位号 (1-10)' });
-      return;
-    }
+    const seatNum = parseInt(seat) || getNextSeat(existingPlayers);
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/preassign`, {
@@ -36,9 +39,10 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
         seat: seatNum,
         chips: chips ? parseInt(chips) : undefined,
       }, { headers: { 'X-Admin-Token': adminToken } });
-      Toast.show({ content: `已添加 ${username.trim()} 到座位 ${seatNum}`, icon: 'success' });
+      Toast.show({ content: `已添加 ${username.trim()} → 座位 ${seatNum}`, icon: 'success' });
+      // Reset for next player, auto-increment seat
       setUsername('');
-      setSeat('');
+      setSeat(String(getNextSeat([...existingPlayers, { seat: seatNum } as Player])));
       setChips('');
     } catch (err: any) {
       Toast.show({ content: err?.response?.data?.detail || '添加失败', icon: 'fail' });
@@ -67,6 +71,7 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
             value={username}
             onChange={e => setUsername(e.target.value)}
             placeholder="玩家昵称"
+            autoFocus
           />
           <div style={{ display: 'flex', gap: 8 }}>
             <input
@@ -75,7 +80,7 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
               type="number"
               value={seat}
               onChange={e => setSeat(e.target.value)}
-              placeholder="座位号 (1-10)"
+              placeholder="座位号"
               min={1}
               max={10}
             />
