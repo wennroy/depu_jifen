@@ -24,6 +24,7 @@ class Room(Base):
     game_phase = Column(String(20), nullable=False, default="lobby")  # lobby/preflop/flop/turn/river/showdown
     dealer_seat = Column(Integer, nullable=True)
     action_seat = Column(Integer, nullable=True)
+    round_end_seat = Column(Integer, nullable=True)  # seat that closes the betting round
     pot = Column(Integer, nullable=False, default=0)
     current_bet_level = Column(Integer, nullable=False, default=0)
 

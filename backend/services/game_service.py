@@ -29,20 +29,22 @@ def _get_next_seat(room: Room, from_seat: int) -> int | None:
     if not players:
         return None
     seats = [p.seat for p in players]
-    # Find first seat > from_seat, then wrap around
     after = [s for s in seats if s > from_seat]
     if after:
         return after[0]
-    return seats[0]  # wrap around
+    return seats[0]
 
 
-def _is_round_complete(room: Room) -> bool:
-    """Check if all non-folded players have matched the current bet level."""
-    active = _active_players(room)
-    active_with_chips = [p for p in active if p.chips > 0]  # all-in players are done
-    if len(active_with_chips) <= 1:
-        return True
-    return all(p.round_bet == room.current_bet_level for p in active_with_chips)
+def _get_prev_seat(room: Room, from_seat: int) -> int | None:
+    """Find previous active, non-folded player seat (for round_end_seat)."""
+    players = _active_players(room)
+    if not players:
+        return None
+    seats = [p.seat for p in players]
+    before = [s for s in seats if s < from_seat]
+    if before:
+        return before[-1]
+    return seats[-1]
 
 
 def _player_states_snapshot(room: Room) -> list[dict]:
@@ -60,13 +62,11 @@ async def start_hand(db: Session, room: Room):
     if len(seated) < 2:
         raise ValueError("至少需要 2 名玩家才能开始")
 
-    # Reset per-hand state
     for p in room.players:
         p.round_bet = 0
         p.hand_bet = 0
         p.is_folded = False
 
-    # Advance dealer
     seats = [p.seat for p in seated]
     if room.dealer_seat is None or room.dealer_seat not in seats:
         room.dealer_seat = seats[0]
@@ -74,17 +74,14 @@ async def start_hand(db: Session, room: Room):
         idx = seats.index(room.dealer_seat)
         room.dealer_seat = seats[(idx + 1) % len(seats)]
 
-    # Find SB and BB seats
     dealer_idx = seats.index(room.dealer_seat)
     if len(seated) == 2:
-        # Heads-up: dealer is SB
         sb_seat = seats[dealer_idx]
         bb_seat = seats[(dealer_idx + 1) % len(seats)]
     else:
         sb_seat = seats[(dealer_idx + 1) % len(seats)]
         bb_seat = seats[(dealer_idx + 2) % len(seats)]
 
-    # Post blinds
     sb_player = next(p for p in seated if p.seat == sb_seat)
     bb_player = next(p for p in seated if p.seat == bb_seat)
 
@@ -104,12 +101,14 @@ async def start_hand(db: Session, room: Room):
     room.game_phase = "preflop"
     room.current_round += 1
 
-    # UTG is the player after BB
+    # UTG = after BB
     bb_idx = seats.index(bb_seat)
     utg_seat = seats[(bb_idx + 1) % len(seats)]
     room.action_seat = utg_seat
 
-    # Record blind transactions
+    # Preflop: round ends at BB (BB gets last option to raise)
+    room.round_end_seat = bb_seat
+
     db.add(Transaction(room_id=room.id, round_number=room.current_round,
                        tx_type="blind", from_player_id=sb_player.id,
                        amount=sb_amount, note=f"小盲 {sb_amount}"))
@@ -158,6 +157,9 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         target.hand_bet += raise_cost
         room.pot += raise_cost
         room.current_bet_level = target.round_bet
+        # Raise resets the round closer: everyone else must respond
+        # New end seat = the player just before the raiser
+        room.round_end_seat = _get_prev_seat(room, target.seat)
     elif action == "allin":
         allin_amount = target.chips
         target.chips = 0
@@ -166,6 +168,7 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         room.pot += allin_amount
         if target.round_bet > room.current_bet_level:
             room.current_bet_level = target.round_bet
+            room.round_end_seat = _get_prev_seat(room, target.seat)
     else:
         raise ValueError(f"未知操作: {action}")
 
@@ -180,35 +183,38 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         room.action_seat = None
         room.game_phase = "showdown"
         db.commit()
-        await manager.broadcast(room.room_code, {
-            "type": "player_acted",
-            "data": {
-                "player_id": target.id, "action": action, "amount": amount,
-                "chips": target.chips, "round_bet": target.round_bet,
-                "pot": room.pot, "action_seat": None,
-                "phase": room.game_phase, "betting_complete": True,
-            },
-        })
+        await _broadcast_acted(room, target, action, amount, betting_complete=True)
         return
 
-    # Advance turn
+    # Check if betting round is complete:
+    # The round ends when the round_end_seat player has just acted
+    # AND all active players have matching bets (or are all-in)
     next_seat = _get_next_seat(room, target.seat)
     betting_complete = False
 
-    if action != "fold" and _is_round_complete(room):
-        room.action_seat = None
-        betting_complete = True
+    if action != "fold" and target.seat == room.round_end_seat:
+        # The closer has acted — check if bets are matched
+        active_with_chips = [p for p in active if p.chips > 0]
+        if len(active_with_chips) <= 1 or all(p.round_bet == room.current_bet_level for p in active_with_chips):
+            room.action_seat = None
+            betting_complete = True
+        else:
+            room.action_seat = next_seat
     else:
         room.action_seat = next_seat
 
     db.commit()
+    await _broadcast_acted(room, target, action, amount, betting_complete=betting_complete)
 
+
+async def _broadcast_acted(room: Room, target: Player, action: str, amount: int, betting_complete: bool):
     await manager.broadcast(room.room_code, {
         "type": "player_acted",
         "data": {
             "player_id": target.id, "action": action, "amount": amount,
             "chips": target.chips, "round_bet": target.round_bet,
-            "pot": room.pot, "action_seat": room.action_seat,
+            "pot": room.pot, "current_bet_level": room.current_bet_level,
+            "action_seat": room.action_seat,
             "phase": room.game_phase, "betting_complete": betting_complete,
         },
     })
@@ -223,23 +229,27 @@ async def next_betting_round(db: Session, room: Room):
     next_phase = PHASE_ORDER[phase_idx + 1]
     room.game_phase = next_phase
 
-    # Reset round bets but keep pot
     for p in room.players:
         p.round_bet = 0
     room.current_bet_level = 0
 
     if next_phase == "showdown":
         room.action_seat = None
+        room.round_end_seat = None
     else:
-        # Action starts from first active player after dealer
         active = _active_players(room)
         active = [p for p in active if p.chips > 0]
         if len(active) <= 1:
             room.action_seat = None
+            room.round_end_seat = None
             room.game_phase = "showdown"
         else:
+            # Post-flop: action starts from first player after dealer
             first_seat = _get_next_seat(room, room.dealer_seat)
             room.action_seat = first_seat
+            # Round ends at dealer (last to act post-flop)
+            # = the player just before the first actor
+            room.round_end_seat = _get_prev_seat(room, first_seat)
 
     db.commit()
 
@@ -256,7 +266,7 @@ async def next_betting_round(db: Session, room: Room):
 
 
 async def settle_hand(db: Session, room: Room, winners: list[dict]):
-    """Settle: distribute pot to winners. winners = [{player_id, amount}]."""
+    """Settle: distribute pot to winners."""
     if room.game_phase != "showdown":
         raise ValueError("只能在 showdown 阶段结算")
 
@@ -276,11 +286,11 @@ async def settle_hand(db: Session, room: Room, winners: list[dict]):
                            tx_type="win", to_player_id=player.id,
                            amount=w["amount"], note=f"{player.username} 赢得 {w['amount']}"))
 
-    # Reset to lobby
     room.game_phase = "lobby"
     room.pot = 0
     room.current_bet_level = 0
     room.action_seat = None
+    room.round_end_seat = None
     for p in room.players:
         p.round_bet = 0
         p.hand_bet = 0

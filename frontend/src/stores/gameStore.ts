@@ -183,9 +183,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const d = msg.data;
         set({
           pot: d.pot,
+          currentBetLevel: d.current_bet_level ?? state.currentBetLevel,
           actionSeat: d.action_seat,
           gamePhase: d.phase,
           bettingComplete: d.betting_complete || false,
+          actingForPlayerId: null,
           players: state.players.map(p => {
             if (p.player_id === d.player_id) {
               return {
