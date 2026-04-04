@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import Room, Player, Transaction
-from backend.schemas.room import AdjustRequest, KickRequest, PreassignPlayerRequest, UpdateBlindsRequest
+from backend.schemas.room import AdjustRequest, KickRequest, PreassignPlayerRequest, UpdateBlindsRequest, UpdateSeatsRequest
 from backend.services.chip_service import adjust_chips
 from backend.services.room_service import preassign_player
 from backend.services.ws_manager import manager
@@ -75,6 +75,40 @@ async def api_update_blinds(req: UpdateBlindsRequest, room: Room = Depends(_get_
     await manager.broadcast(room.room_code, {
         "type": "blinds_updated",
         "data": {"small_blind": room.small_blind, "big_blind": room.big_blind},
+    })
+    return {"ok": True}
+
+
+@router.post("/update-seats")
+async def api_update_seats(
+    req: UpdateSeatsRequest,
+    room: Room = Depends(_get_room),
+    db: Session = Depends(get_db),
+):
+    """Reassign seats for players (only in lobby phase)."""
+    if room.game_phase != "lobby":
+        raise HTTPException(400, "只能在等待阶段调整座位")
+
+    # Validate no duplicate seats
+    new_seats = [a.seat for a in req.assignments]
+    if len(new_seats) != len(set(new_seats)):
+        raise HTTPException(400, "座位号不能重复")
+
+    for a in req.assignments:
+        player = db.query(Player).filter(Player.id == a.player_id, Player.room_id == room.id).first()
+        if not player:
+            raise HTTPException(400, f"玩家不存在")
+        player.seat = a.seat
+
+    db.commit()
+
+    players_data = [
+        {"player_id": p.id, "username": p.username, "seat": p.seat}
+        for p in db.query(Player).filter(Player.room_id == room.id, Player.is_active == True).all()
+    ]
+    await manager.broadcast(room.room_code, {
+        "type": "seats_updated",
+        "data": {"players": players_data},
     })
     return {"ok": True}
 

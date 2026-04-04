@@ -111,6 +111,15 @@ class RebuyRequest(BaseModel):
     amount: int = Field(..., gt=0)
 
 
+class SeatAssignment(BaseModel):
+    player_id: str
+    seat: int = Field(..., ge=1, le=10)
+
+
+class UpdateSeatsRequest(BaseModel):
+    assignments: list[SeatAssignment]
+
+
 class BetRequest(BaseModel):
     amount: int = Field(..., gt=0)
 

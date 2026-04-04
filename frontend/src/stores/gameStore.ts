@@ -257,6 +257,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set({ smallBlind: msg.data.small_blind, bigBlind: msg.data.big_blind });
         break;
       }
+      case 'seats_updated': {
+        const updates = msg.data.players as { player_id: string; seat: number }[];
+        set({
+          players: state.players.map(p => {
+            const u = updates.find(u => u.player_id === p.player_id);
+            return u ? { ...p, seat: u.seat } : p;
+          }),
+        });
+        break;
+      }
       case 'player_away': {
         set({
           players: state.players.map(p =>

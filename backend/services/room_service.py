@@ -91,7 +91,7 @@ def preassign_player(db: Session, room: Room, username: str, seat: int, chips: i
         player_token=str(uuid4()),
         seat=seat,
         is_preassigned=True,
-        is_active=False,  # Not active until claimed
+        is_active=True,  # Active immediately, can be acted for by others
         total_buyin=initial,
     )
     db.add(player)

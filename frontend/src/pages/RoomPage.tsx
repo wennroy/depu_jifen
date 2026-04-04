@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
-import { Share2, Loader2, UserPlus, CupSoda } from 'lucide-react';
+import { Share2, Loader2, UserPlus, CupSoda, Armchair } from 'lucide-react';
 import http from '../api/http';
 import { useGameStore, getStoredTokens } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -15,6 +15,7 @@ import TransferDialog from '../components/room/TransferDialog';
 import RebuyDialog from '../components/room/RebuyDialog';
 import PreassignDialog from '../components/admin/PreassignDialog';
 import DashboardDialog from '../components/admin/DashboardDialog';
+import SeatManageDialog from '../components/room/SeatManageDialog';
 import styles from './RoomPage.module.css';
 
 function copyToClipboardFallback(text: string) {
@@ -36,6 +37,7 @@ export default function RoomPage() {
   const [showRebuy, setShowRebuy] = useState(false);
   const [showPreassign, setShowPreassign] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showSeats, setShowSeats] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
@@ -126,9 +128,16 @@ export default function RoomPage() {
           <span className={styles.roomCode}>#{roomCode}</span>
         </div>
         <div className={styles.headerRight}>
-          <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="添加玩家">
-            <UserPlus size={16} />
-          </button>
+          {store.gamePhase === 'lobby' && (
+            <>
+              <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="添加玩家">
+                <UserPlus size={16} />
+              </button>
+              <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位">
+                <Armchair size={16} />
+              </button>
+            </>
+          )}
           <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单">
             <CupSoda size={16} />
           </button>
@@ -230,6 +239,14 @@ export default function RoomPage() {
           adminToken={store.playerToken || ''}
           existingPlayers={store.players}
           onClose={() => setShowPreassign(false)}
+        />
+      )}
+      {showSeats && (
+        <SeatManageDialog
+          roomCode={roomCode}
+          playerToken={store.playerToken || ''}
+          players={store.players}
+          onClose={() => setShowSeats(false)}
         />
       )}
       {showDashboard && (
