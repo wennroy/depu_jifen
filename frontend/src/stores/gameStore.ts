@@ -83,10 +83,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const addLog = (type: string, note: string, amount: number = 0) => {
       const entry: TransactionLog = {
-        id: Date.now(), tx_type: type, from_username: null, to_username: null,
+        id: Date.now() + Math.random(), tx_type: type, from_username: null, to_username: null,
         amount, note, created_at: new Date().toISOString(),
       };
-      set({ transactions: [entry, ...state.transactions].slice(0, 100) });
+      const current = get().transactions;
+      set({ transactions: [entry, ...current].slice(0, 100) });
     };
     switch (msg.type) {
       case 'player_joined': {
