@@ -31,7 +31,7 @@ export default function TransferDialog({ roomCode, playerToken, targetPlayerId, 
       await http.post(`/rooms/${roomCode}/transfer`, {
         to_player_id: targetPlayerId,
         amount: val,
-      }, { headers: { 'X-Player-Token': playerToken } });
+      }, { headers: { 'X-User-Token': playerToken } });
       Toast.show({ content: `已转给 ${targetUsername} ${val} 筹码`, icon: 'success' });
       onClose();
     } catch (err: any) {

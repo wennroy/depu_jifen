@@ -28,7 +28,7 @@ export default function BetPanel({ roomCode, playerToken, currentChips }: Props)
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/bet`, { amount: val }, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
       setAmount('');
       Toast.show({ content: `下注 ${val}`, icon: 'success', duration: 1000 });

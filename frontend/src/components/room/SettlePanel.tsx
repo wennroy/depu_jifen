@@ -47,7 +47,7 @@ export default function SettlePanel({ roomCode, playerToken, pot, players, onSet
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/settle-hand`, { winners }, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
       Toast.show({ content: '结算完成', icon: 'success' });
       onSettled();

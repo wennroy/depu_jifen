@@ -28,7 +28,7 @@ export default function AdjustChipsDialog({ roomCode, adminToken, targetPlayerId
         player_id: targetPlayerId,
         amount: val,
         note: note || undefined,
-      }, { headers: { 'X-Admin-Token': adminToken } });
+      }, { headers: { 'X-User-Token': adminToken } });
       Toast.show({ content: `已调整 ${targetUsername} 的筹码 ${val > 0 ? '+' : ''}${val}`, icon: 'success' });
       onClose();
     } catch (err: any) {

@@ -1,0 +1,186 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+}
+
+.seat {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+  font-family: var(--font-display);
+}
+
+.chips {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-accent-bright);
+  font-family: var(--font-display);
+}
+
+.statusLine {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: var(--font-display);
+  margin-bottom: 10px;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.foldBtn, .callBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.foldBtn {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.foldBtn:active:not(:disabled) { transform: scale(0.97); }
+
+.callBtn {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.callBtn:active:not(:disabled) { transform: scale(0.97); }
+
+.suggestions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.suggestBtn {
+  padding: 6px 12px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.suggestBtn:hover { border-color: var(--color-accent-border); color: var(--color-accent); }
+.suggestBtn:active { transform: scale(0.95); }
+
+.raiseRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+  outline: none;
+}
+
+.input:focus { border-color: var(--color-accent); }
+.input::placeholder { color: var(--color-text-muted); font-size: 0.8rem; }
+
+.raiseBtn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dim));
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-bg-deep);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-display);
+  white-space: nowrap;
+}
+
+.raiseBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.mgmtGrid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mgmtBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.mgmtBtn:hover { color: var(--color-text-primary); border-color: rgba(255, 255, 255, 0.12); }
+.mgmtBtn:active { transform: scale(0.95); }
+
+.closeBtn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-display);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.closeBtn:hover { color: var(--color-text-secondary); border-color: rgba(255, 255, 255, 0.12); }

@@ -19,7 +19,7 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/start-hand`, {}, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
     } catch (err: any) {
       Toast.show({ content: err?.response?.data?.detail || '操作失败', icon: 'fail' });
@@ -32,7 +32,7 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/next-round`, {}, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
     } catch (err: any) {
       Toast.show({ content: err?.response?.data?.detail || '操作失败', icon: 'fail' });

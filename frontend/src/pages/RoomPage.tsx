@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
 import { Share2, Loader2, UserPlus, CupSoda, Armchair } from 'lucide-react';
 import http from '../api/http';
-import { useGameStore, getStoredTokens } from '../stores/gameStore';
+import { useUser } from '../contexts/UserContext';
+import { useGameStore } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
 import PotDisplay from '../components/room/PotDisplay';
 import PlayerCard from '../components/room/PlayerCard';
@@ -11,8 +12,10 @@ import GameControlButton from '../components/room/GameControlButton';
 import BetActionPanel from '../components/room/BetActionPanel';
 import SettlePanel from '../components/room/SettlePanel';
 import GameLog from '../components/room/GameLog';
+import PlayerActionDialog from '../components/room/PlayerActionDialog';
 import TransferDialog from '../components/room/TransferDialog';
 import RebuyDialog from '../components/room/RebuyDialog';
+import AdjustChipsDialog from '../components/admin/AdjustChipsDialog';
 import PreassignDialog from '../components/admin/PreassignDialog';
 import DashboardDialog from '../components/admin/DashboardDialog';
 import SeatManageDialog from '../components/room/SeatManageDialog';
@@ -32,8 +35,11 @@ function copyToClipboardFallback(text: string) {
 export default function RoomPage() {
   const { roomCode: urlRoomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
+  const { user } = useUser();
   const store = useGameStore();
+  const [actionTarget, setActionTarget] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<string | null>(null);
   const [showRebuy, setShowRebuy] = useState(false);
   const [showPreassign, setShowPreassign] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -41,48 +47,23 @@ export default function RoomPage() {
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
+  const userToken = user?.userToken || '';
+  const headers = { 'X-User-Token': userToken };
 
+  // Fetch room state
   useEffect(() => {
-    const tokens = getStoredTokens(roomCode);
-    if (!tokens.playerToken) {
-      navigate(`/join/${roomCode}`);
-      return;
-    }
-    store.setIdentity({
-      roomCode,
-      playerToken: tokens.playerToken,
-      playerId: tokens.playerId || '',
-      username: tokens.username || '',
-    });
-  }, [roomCode]);
+    if (!userToken || !roomCode) return;
+    http.get(`/rooms/${roomCode}/state`, { headers })
+      .then(({ data }) => { store.setRoomState(data); setLoaded(true); })
+      .catch(() => { Toast.show({ content: '获取房间信息失败', icon: 'fail' }); navigate('/'); });
+  }, [userToken, roomCode]);
 
-  useEffect(() => {
-    if (!store.playerToken || !roomCode) return;
-    const fetchState = async () => {
-      try {
-        const { data } = await http.get(`/rooms/${roomCode}/state`, {
-          headers: { 'X-Player-Token': store.playerToken! },
-        });
-        store.setRoomState(data);
-        setLoaded(true);
-      } catch {
-        Toast.show({ content: '获取房间信息失败', icon: 'fail' });
-        navigate('/');
-      }
-    };
-    fetchState();
-  }, [store.playerToken, roomCode]);
-
-  useWebSocket(roomCode, store.playerToken);
+  // WebSocket
+  useWebSocket(roomCode, userToken);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/join/${roomCode}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: store.roomName, text: `来加入德扑局: ${store.roomName}`, url });
-        return;
-      }
-    } catch { /* cancelled */ }
+    const url = `${window.location.origin}/room/${roomCode}`;
+    try { if (navigator.share) { await navigator.share({ title: store.roomName, url }); return; } } catch {}
     try { await navigator.clipboard.writeText(url); } catch { copyToClipboardFallback(url); }
     Toast.show({ content: '链接已复制', icon: 'success' });
   };
@@ -97,27 +78,32 @@ export default function RoomPage() {
 
   const myPlayer = store.players.find(p => p.player_id === store.playerId);
   const gameActive = store.gamePhase !== 'lobby';
+  const isMyTurn = myPlayer && myPlayer.seat === store.actionSeat;
   const seated = store.players
-    .filter(p => p.seat !== null && (p.is_active || p.is_preassigned))
+    .filter(p => p.seat !== null && p.is_active)
     .sort((a, b) => (a.seat || 0) - (b.seat || 0));
 
-  // Determine SB/BB seats
-  const dealerSeat = store.dealerSeat;
-  const seatList = seated.filter(p => p.is_active).map(p => p.seat!);
-  let sbSeat: number | null = null;
-  let bbSeat: number | null = null;
-  if (dealerSeat && seatList.length >= 2) {
-    const dIdx = seatList.indexOf(dealerSeat);
+  // SB/BB calculation
+  const seatList = seated.map(p => p.seat!);
+  let sbSeat: number | null = null, bbSeat: number | null = null;
+  if (store.dealerSeat && seatList.length >= 2) {
+    const dIdx = seatList.indexOf(store.dealerSeat);
     if (dIdx !== -1) {
-      if (seatList.length === 2) {
-        sbSeat = seatList[dIdx];
-        bbSeat = seatList[(dIdx + 1) % seatList.length];
-      } else {
-        sbSeat = seatList[(dIdx + 1) % seatList.length];
-        bbSeat = seatList[(dIdx + 2) % seatList.length];
-      }
+      if (seatList.length === 2) { sbSeat = seatList[dIdx]; bbSeat = seatList[(dIdx + 1) % seatList.length]; }
+      else { sbSeat = seatList[(dIdx + 1) % seatList.length]; bbSeat = seatList[(dIdx + 2) % seatList.length]; }
     }
   }
+
+  const handlePlayerClick = (playerId: string) => {
+    const p = store.players.find(x => x.player_id === playerId);
+    if (!p) return;
+    // If it's my turn and I click myself → just use bottom panel
+    if (isMyTurn && playerId === store.playerId) return;
+    // Otherwise open action dialog
+    setActionTarget(playerId);
+  };
+
+  const actionPlayer = actionTarget ? store.players.find(p => p.player_id === actionTarget) : null;
 
   return (
     <div className={`felt-bg ${styles.page}`}>
@@ -130,58 +116,31 @@ export default function RoomPage() {
         <div className={styles.headerRight}>
           {store.gamePhase === 'lobby' && (
             <>
-              <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="添加玩家">
-                <UserPlus size={16} />
-              </button>
-              <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位">
-                <Armchair size={16} />
-              </button>
+              <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="邀请玩家"><UserPlus size={16} /></button>
+              <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位"><Armchair size={16} /></button>
             </>
           )}
-          <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单">
-            <CupSoda size={16} />
-          </button>
-          <button className={styles.shareBtn} onClick={handleShare}>
-            <Share2 size={14} />
-          </button>
+          <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单"><CupSoda size={16} /></button>
+          <button className={styles.shareBtn} onClick={handleShare}><Share2 size={14} /></button>
           <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
         </div>
       </header>
 
-      {/* Pot & Phase display */}
-      <PotDisplay
-        pot={store.pot}
-        phase={store.gamePhase}
-        currentBetLevel={store.currentBetLevel}
-        round={store.currentRound}
-        smallBlind={store.smallBlind}
-        bigBlind={store.bigBlind}
-      />
+      {/* Pot */}
+      <PotDisplay pot={store.pot} phase={store.gamePhase} currentBetLevel={store.currentBetLevel}
+        round={store.currentRound} smallBlind={store.smallBlind} bigBlind={store.bigBlind} />
 
-      {/* Player cards grid */}
+      {/* Player cards */}
       <div className={styles.playerGrid}>
         {seated.map(p => (
-          <PlayerCard
-            key={p.player_id}
-            player={p}
-            isMe={p.player_id === store.playerId}
-            isDealer={p.seat === dealerSeat}
-            isSB={p.seat === sbSeat}
-            isBB={p.seat === bbSeat}
-            isAction={p.seat === store.actionSeat}
-            gameActive={gameActive}
-            onActFor={(pid) => {
-              if (gameActive && p.seat === store.actionSeat) {
-                store.setActingFor(pid);
-              } else if (!gameActive) {
-                setTransferTarget(pid);
-              }
-            }}
-          />
+          <PlayerCard key={p.player_id} player={p} isMe={p.player_id === store.playerId}
+            isDealer={p.seat === store.dealerSeat} isSB={p.seat === sbSeat} isBB={p.seat === bbSeat}
+            isAction={p.seat === store.actionSeat} gameActive={gameActive}
+            onActFor={handlePlayerClick} />
         ))}
       </div>
 
-      {/* My chips bar */}
+      {/* My bar */}
       {myPlayer && (
         <div className={styles.myBar}>
           <span>我的筹码: <strong>{myPlayer.chips.toLocaleString()}</strong></span>
@@ -189,72 +148,60 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* Game control / Action panels */}
-      <GameControlButton
-        roomCode={roomCode}
-        playerToken={store.playerToken || ''}
-        phase={store.gamePhase}
-        bettingComplete={store.bettingComplete}
-      />
+      {/* Game controls */}
+      <GameControlButton roomCode={roomCode} playerToken={userToken} phase={store.gamePhase} bettingComplete={store.bettingComplete} />
 
-      {gameActive && store.gamePhase !== 'showdown' && store.actionSeat && !store.bettingComplete && (
+      {/* BetActionPanel: only when it's MY turn */}
+      {isMyTurn && gameActive && store.gamePhase !== 'showdown' && !store.bettingComplete && (
         <BetActionPanel />
       )}
 
+      {/* Settle */}
       {store.gamePhase === 'showdown' && (
-        <SettlePanel
-          roomCode={roomCode}
-          playerToken={store.playerToken || ''}
-          pot={store.pot}
-          players={store.players}
-          onSettled={() => {}}
-        />
+        <SettlePanel roomCode={roomCode} playerToken={userToken} pot={store.pot}
+          players={store.players} onSettled={() => {}} />
       )}
 
-      {/* Game log */}
       <GameLog transactions={store.transactions} />
 
       {/* Dialogs */}
+      {actionPlayer && (
+        <PlayerActionDialog
+          player={actionPlayer} roomCode={roomCode} gamePhase={store.gamePhase}
+          actionSeat={store.actionSeat} currentBetLevel={store.currentBetLevel}
+          bigBlind={store.bigBlind} pot={store.pot}
+          onClose={() => setActionTarget(null)}
+          onTransfer={() => setTransferTarget(actionPlayer.player_id)}
+          onAdjust={() => setAdjustTarget(actionPlayer.player_id)}
+        />
+      )}
       {transferTarget && myPlayer && (
-        <TransferDialog
-          roomCode={roomCode}
-          playerToken={store.playerToken || ''}
+        <TransferDialog roomCode={roomCode} playerToken={userToken}
           targetPlayerId={transferTarget}
           targetUsername={store.players.find(p => p.player_id === transferTarget)?.username || ''}
-          currentChips={myPlayer.chips}
-          onClose={() => setTransferTarget(null)}
-        />
+          currentChips={myPlayer.chips} onClose={() => setTransferTarget(null)} />
+      )}
+      {adjustTarget && (
+        <AdjustChipsDialog roomCode={roomCode} adminToken={userToken}
+          targetPlayerId={adjustTarget}
+          targetUsername={store.players.find(p => p.player_id === adjustTarget)?.username || ''}
+          onClose={() => setAdjustTarget(null)} />
       )}
       {showRebuy && (
-        <RebuyDialog
-          roomCode={roomCode}
-          playerToken={store.playerToken || ''}
-          initialChips={store.bigBlind * 100}
-          onClose={() => setShowRebuy(false)}
-        />
+        <RebuyDialog roomCode={roomCode} playerToken={userToken}
+          initialChips={store.bigBlind * 100} onClose={() => setShowRebuy(false)} />
       )}
       {showPreassign && (
-        <PreassignDialog
-          roomCode={roomCode}
-          adminToken={store.playerToken || ''}
-          existingPlayers={store.players}
-          onClose={() => setShowPreassign(false)}
-        />
+        <PreassignDialog roomCode={roomCode} adminToken={userToken}
+          existingPlayers={store.players} onClose={() => setShowPreassign(false)} />
       )}
       {showSeats && (
-        <SeatManageDialog
-          roomCode={roomCode}
-          playerToken={store.playerToken || ''}
-          players={store.players}
-          onClose={() => setShowSeats(false)}
-        />
+        <SeatManageDialog roomCode={roomCode} playerToken={userToken}
+          players={store.players} onClose={() => setShowSeats(false)} />
       )}
       {showDashboard && (
-        <DashboardDialog
-          roomCode={roomCode}
-          adminToken={store.playerToken || ''}
-          onClose={() => setShowDashboard(false)}
-        />
+        <DashboardDialog roomCode={roomCode} adminToken={userToken}
+          onClose={() => setShowDashboard(false)} />
       )}
     </div>
   );

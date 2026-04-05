@@ -25,7 +25,7 @@ export default function RebuyDialog({ roomCode, playerToken, initialChips, onClo
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/rebuy`, { amount: val }, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
       Toast.show({ content: `买入 ${val} 筹码成功`, icon: 'success' });
       onClose();

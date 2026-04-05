@@ -34,11 +34,11 @@ export default function PreassignDialog({ roomCode, adminToken, existingPlayers,
     const seatNum = parseInt(seat) || getNextSeat(existingPlayers);
     setLoading(true);
     try {
-      await http.post(`/rooms/${roomCode}/preassign`, {
+      await http.post(`/rooms/${roomCode}/invite`, {
         username: username.trim(),
         seat: seatNum,
         chips: chips ? parseInt(chips) : undefined,
-      }, { headers: { 'X-Player-Token': adminToken } });
+      }, { headers: { 'X-User-Token': adminToken } });
       Toast.show({ content: `已添加 ${username.trim()} → 座位 ${seatNum}`, icon: 'success' });
       // Reset for next player, auto-increment seat
       setUsername('');

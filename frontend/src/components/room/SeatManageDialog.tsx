@@ -47,7 +47,7 @@ export default function SeatManageDialog({ roomCode, playerToken, players, onClo
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/update-seats`, { assignments }, {
-        headers: { 'X-Player-Token': playerToken },
+        headers: { 'X-User-Token': playerToken },
       });
       Toast.show({ content: '座位已更新', icon: 'success' });
       onClose();
