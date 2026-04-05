@@ -1,74 +1,120 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Room, Player, Transaction
-from backend.schemas.room import AdjustRequest, KickRequest, PreassignPlayerRequest, UpdateBlindsRequest, UpdateSeatsRequest
+from backend.models import Room, Player, Transaction, User
+from backend.routers.deps import get_room_and_player
+from backend.schemas.room import AdjustRequest, KickRequest, UpdateBlindsRequest, UpdateSeatsRequest
 from backend.services.chip_service import adjust_chips
-from backend.services.room_service import preassign_player
 from backend.services.ws_manager import manager
 
 router = APIRouter(prefix="/api/rooms/{room_code}", tags=["manage"])
 
 
-def _get_room(room_code: str = Path(...), x_player_token: str = Header(...), db: Session = Depends(get_db)):
-    """Any active player can manage — no admin restriction."""
-    room = db.query(Room).filter(Room.room_code == room_code.upper()).first()
-    if not room:
-        raise HTTPException(404, "房间不存在")
-    caller = db.query(Player).filter(
+@router.post("/invite")
+async def api_invite(deps=Depends(get_room_and_player), username: str = "", seat: int = 0, chips: int = 0):
+    """Handled below with body parsing."""
+    pass
+
+
+from pydantic import BaseModel, Field
+
+
+class InviteRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    seat: int | None = None
+    chips: int | None = None
+
+
+@router.post("/invite", include_in_schema=True)
+async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+
+    # Check if already invited
+    existing = db.query(Player).filter(
         Player.room_id == room.id,
-        Player.player_token == x_player_token,
-        Player.is_active == True,
+        Player.invited_username == req.username.strip(),
     ).first()
-    if not caller:
-        raise HTTPException(403, "无效的玩家令牌")
-    return room
+    if existing:
+        raise HTTPException(400, f"{req.username} 已在房间中")
+
+    # Find if user exists
+    target_user = db.query(User).filter(User.username == req.username.strip()).first()
+
+    # Auto-assign seat
+    taken_seats = {p.seat for p in room.players if p.seat is not None}
+    seat = req.seat
+    if not seat:
+        seat = 1
+        while seat in taken_seats:
+            seat += 1
+
+    initial = req.chips or room.initial_chips
+
+    new_player = Player(
+        room_id=room.id,
+        user_id=target_user.id if target_user else None,
+        invited_username=req.username.strip(),
+        username=req.username.strip(),
+        chips=initial,
+        seat=seat,
+        is_active=True,
+        total_buyin=initial,
+        status="online" if target_user else "afk",
+    )
+    db.add(new_player)
+    db.flush()
+
+    db.add(Transaction(
+        room_id=room.id, tx_type="join", to_player_id=new_player.id,
+        amount=initial, note=f"邀请 {req.username.strip()} 到座位 {seat}",
+    ))
+    db.commit()
+
+    await manager.broadcast(room.room_code, {
+        "type": "player_joined",
+        "data": {
+            "player_id": new_player.id, "username": new_player.username,
+            "chips": new_player.chips, "seat": new_player.seat,
+            "status": new_player.status,
+        },
+    })
+    return {"ok": True, "player_id": new_player.id}
 
 
 @router.post("/adjust")
-async def api_adjust(req: AdjustRequest, room: Room = Depends(_get_room), db: Session = Depends(get_db)):
-    player = db.query(Player).filter(Player.id == req.player_id, Player.room_id == room.id).first()
-    if not player:
+async def api_adjust(req: AdjustRequest, deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+    target = db.query(Player).filter(Player.id == req.player_id, Player.room_id == room.id).first()
+    if not target:
         raise HTTPException(400, "玩家不存在")
     try:
-        await adjust_chips(db, room, player, req.amount, req.note)
+        await adjust_chips(db, room, target, req.amount, req.note)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return {"ok": True, "chips": player.chips}
+    return {"ok": True, "chips": target.chips}
 
 
 @router.post("/kick")
-async def api_kick(req: KickRequest, room: Room = Depends(_get_room), db: Session = Depends(get_db)):
-    player = db.query(Player).filter(
+async def api_kick(req: KickRequest, deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+    target = db.query(Player).filter(
         Player.id == req.player_id, Player.room_id == room.id, Player.is_active == True,
     ).first()
-    if not player:
+    if not target:
         raise HTTPException(400, "玩家不存在")
-    player.is_active = False
+    target.is_active = False
     db.commit()
     await manager.broadcast(room.room_code, {
         "type": "player_kicked",
-        "data": {"player_id": player.id, "username": player.username},
+        "data": {"player_id": target.id, "username": target.username},
     })
     return {"ok": True}
 
 
-@router.post("/preassign")
-async def api_preassign(req: PreassignPlayerRequest, room: Room = Depends(_get_room), db: Session = Depends(get_db)):
-    try:
-        player = preassign_player(db, room, req.username, req.seat, req.chips)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-    await manager.broadcast(room.room_code, {
-        "type": "player_preassigned",
-        "data": {"player_id": player.id, "username": player.username, "chips": player.chips, "seat": player.seat},
-    })
-    return {"ok": True, "player_id": player.id}
-
-
 @router.post("/blinds")
-async def api_update_blinds(req: UpdateBlindsRequest, room: Room = Depends(_get_room), db: Session = Depends(get_db)):
+async def api_update_blinds(req: UpdateBlindsRequest, deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
     room.small_blind = req.small_blind
     room.big_blind = req.big_blind
     db.commit()
@@ -80,41 +126,30 @@ async def api_update_blinds(req: UpdateBlindsRequest, room: Room = Depends(_get_
 
 
 @router.post("/update-seats")
-async def api_update_seats(
-    req: UpdateSeatsRequest,
-    room: Room = Depends(_get_room),
-    db: Session = Depends(get_db),
-):
-    """Reassign seats for players (only in lobby phase)."""
+async def api_update_seats(req: UpdateSeatsRequest, deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
     if room.game_phase != "lobby":
         raise HTTPException(400, "只能在等待阶段调整座位")
-
-    # Validate no duplicate seats
     new_seats = [a.seat for a in req.assignments]
     if len(new_seats) != len(set(new_seats)):
         raise HTTPException(400, "座位号不能重复")
-
     for a in req.assignments:
-        player = db.query(Player).filter(Player.id == a.player_id, Player.room_id == room.id).first()
-        if not player:
-            raise HTTPException(400, f"玩家不存在")
-        player.seat = a.seat
-
+        p = db.query(Player).filter(Player.id == a.player_id, Player.room_id == room.id).first()
+        if not p:
+            raise HTTPException(400, "玩家不存在")
+        p.seat = a.seat
     db.commit()
-
     players_data = [
         {"player_id": p.id, "username": p.username, "seat": p.seat}
         for p in db.query(Player).filter(Player.room_id == room.id, Player.is_active == True).all()
     ]
-    await manager.broadcast(room.room_code, {
-        "type": "seats_updated",
-        "data": {"players": players_data},
-    })
+    await manager.broadcast(room.room_code, {"type": "seats_updated", "data": {"players": players_data}})
     return {"ok": True}
 
 
 @router.get("/dashboard")
-async def api_dashboard(room: Room = Depends(_get_room), db: Session = Depends(get_db)):
+async def api_dashboard(deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
     players = db.query(Player).filter(Player.room_id == room.id).all()
     buyin_records = []
     for p in players:
@@ -133,7 +168,8 @@ async def api_dashboard(room: Room = Depends(_get_room), db: Session = Depends(g
 
 
 @router.post("/close")
-async def api_close_room(room: Room = Depends(_get_room), db: Session = Depends(get_db)):
+async def api_close_room(deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
     room.status = "closed"
     db.commit()
     await manager.broadcast(room.room_code, {"type": "room_closed", "data": {}})

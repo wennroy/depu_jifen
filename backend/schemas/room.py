@@ -45,11 +45,10 @@ class PlayerState(BaseModel):
     is_active: bool
     seat: int | None = None
     total_buyin: int = 0
-    is_preassigned: bool = False
+    status: str = "online"
     round_bet: int = 0
     hand_bet: int = 0
     is_folded: bool = False
-    is_away: bool = False
 
 
 class TransactionLog(BaseModel):

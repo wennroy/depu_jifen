@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from backend.database import Base
@@ -13,7 +13,8 @@ class Room(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     room_code = Column(String(6), unique=True, nullable=False, index=True)
     name = Column(String(100), nullable=False)
-    admin_token = Column(String, nullable=False)  # kept for backward compat, not enforced
+    admin_token = Column(String, nullable=True)
+    creator_user_id = Column(String, ForeignKey("users.id"), nullable=True)
     initial_chips = Column(Integer, nullable=False, default=1000)
     small_blind = Column(Integer, nullable=False, default=5)
     big_blind = Column(Integer, nullable=False, default=10)

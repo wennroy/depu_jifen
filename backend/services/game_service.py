@@ -7,25 +7,25 @@ PHASE_ORDER = ["lobby", "preflop", "flop", "turn", "river", "showdown"]
 
 
 def _active_players(room: Room) -> list[Player]:
-    """Players in the hand: active, not folded, seated."""
+    """Players in the hand: active, not folded, not sitout, seated."""
     return sorted(
-        [p for p in room.players if p.is_active and not p.is_folded and p.seat is not None],
+        [p for p in room.players if p.is_active and not p.is_folded and p.status != "sitout" and p.seat is not None],
         key=lambda p: p.seat,
     )
 
 
-def _all_seated_active(room: Room) -> list[Player]:
-    """All active seated players (including folded)."""
+def _all_seated_playing(room: Room) -> list[Player]:
+    """All seated players in current hand (including folded, excluding sitout)."""
     return sorted(
-        [p for p in room.players if p.is_active and p.seat is not None],
+        [p for p in room.players if p.is_active and p.status != "sitout" and p.seat is not None],
         key=lambda p: p.seat,
     )
 
 
 def _get_next_seat(room: Room, from_seat: int) -> int | None:
-    """Find next active, non-folded, non-away player seat clockwise."""
+    """Find next active, non-folded player seat clockwise."""
     players = _active_players(room)
-    players = [p for p in players if not p.is_away and p.chips > 0]
+    players = [p for p in players if p.chips > 0]
     if not players:
         return None
     seats = [p.seat for p in players]
@@ -51,14 +51,14 @@ def _player_states_snapshot(room: Room) -> list[dict]:
     return [
         {"player_id": p.id, "username": p.username, "chips": p.chips,
          "seat": p.seat, "round_bet": p.round_bet, "hand_bet": p.hand_bet,
-         "is_folded": p.is_folded, "is_away": p.is_away}
-        for p in _all_seated_active(room)
+         "is_folded": p.is_folded, "status": p.status}
+        for p in _all_seated_playing(room)
     ]
 
 
 async def start_hand(db: Session, room: Room):
     """Start a new hand: reset state, post blinds, set action to UTG."""
-    seated = _all_seated_active(room)
+    seated = _all_seated_playing(room)
     if len(seated) < 2:
         raise ValueError("至少需要 2 名玩家才能开始")
 
@@ -309,9 +309,10 @@ async def settle_hand(db: Session, room: Room, winners: list[dict]):
 
 
 async def set_away(db: Session, room: Room, player: Player, away: bool):
-    player.is_away = away
+    """Toggle sitout status. away=True → sitout, away=False → online."""
+    player.status = "sitout" if away else "online"
     db.commit()
     await manager.broadcast(room.room_code, {
-        "type": "player_away",
-        "data": {"player_id": player.id, "username": player.username, "is_away": away},
+        "type": "player_status",
+        "data": {"player_id": player.id, "username": player.username, "status": player.status},
     })

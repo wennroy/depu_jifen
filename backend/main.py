@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.config import DB_PATH
 from backend.database import init_db
-from backend.routers import rooms, players, admin, game
+from backend.routers import users, rooms, players, admin, game
 from backend.ws import handler as ws_handler
 
 
@@ -29,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(users.router)
 app.include_router(rooms.router)
 app.include_router(players.router)
 app.include_router(admin.router)

@@ -12,23 +12,25 @@ class Player(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     room_id = Column(String, ForeignKey("rooms.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    invited_username = Column(String(50), nullable=True)
     username = Column(String(50), nullable=False)
     chips = Column(Integer, nullable=False)
-    player_token = Column(String, nullable=False, unique=True)
     is_active = Column(Boolean, nullable=False, default=True)
     seat = Column(Integer, nullable=True)
-    is_preassigned = Column(Boolean, nullable=False, default=False)
     total_buyin = Column(Integer, nullable=False, default=0)
+    status = Column(String(20), nullable=False, default="online")  # online / afk / sitout
 
-    # Per-hand state (reset each hand)
+    # Per-hand state
     round_bet = Column(Integer, nullable=False, default=0)
     hand_bet = Column(Integer, nullable=False, default=0)
     is_folded = Column(Boolean, nullable=False, default=False)
-    is_away = Column(Boolean, nullable=False, default=False)
 
     joined_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     room = relationship("Room", back_populates="players")
+    user = relationship("User", back_populates="players")
+
     __table_args__ = (
-        UniqueConstraint("room_id", "username", name="uq_room_username"),
+        UniqueConstraint("room_id", "user_id", name="uq_room_user"),
     )
