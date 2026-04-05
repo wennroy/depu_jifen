@@ -11,12 +11,6 @@ from backend.services.ws_manager import manager
 router = APIRouter(prefix="/api/rooms/{room_code}", tags=["manage"])
 
 
-@router.post("/invite")
-async def api_invite(deps=Depends(get_room_and_player), username: str = "", seat: int = 0, chips: int = 0):
-    """Handled below with body parsing."""
-    pass
-
-
 from pydantic import BaseModel, Field
 
 
@@ -26,7 +20,7 @@ class InviteRequest(BaseModel):
     chips: int | None = None
 
 
-@router.post("/invite", include_in_schema=True)
+@router.post("/invite")
 async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player)):
     room, player, user, db = deps
 
