@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
-import { Share2, Loader2, UserPlus, CupSoda, Armchair } from 'lucide-react';
+import { Share2, Loader2, UserPlus, CupSoda, Armchair, ScrollText } from 'lucide-react';
 import http from '../api/http';
 import { useUser } from '../contexts/UserContext';
 import { useGameStore } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
 import PotDisplay from '../components/room/PotDisplay';
-import PlayerCard from '../components/room/PlayerCard';
+import TableLayout from '../components/room/TableLayout';
 import GameControlButton from '../components/room/GameControlButton';
 import BetActionPanel from '../components/room/BetActionPanel';
 import SettlePanel from '../components/room/SettlePanel';
-import GameLog from '../components/room/GameLog';
+import LogDrawer from '../components/room/LogDrawer';
 import PlayerActionDialog from '../components/room/PlayerActionDialog';
 import TransferDialog from '../components/room/TransferDialog';
 import RebuyDialog from '../components/room/RebuyDialog';
@@ -44,6 +44,7 @@ export default function RoomPage() {
   const [showPreassign, setShowPreassign] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showSeats, setShowSeats] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
@@ -121,6 +122,7 @@ export default function RoomPage() {
             </>
           )}
           <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单"><CupSoda size={16} /></button>
+          <button className={styles.iconBtn} onClick={() => setShowLog(true)} title="记录"><ScrollText size={16} /></button>
           <button className={styles.shareBtn} onClick={handleShare}><Share2 size={14} /></button>
           <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
         </div>
@@ -130,15 +132,17 @@ export default function RoomPage() {
       <PotDisplay pot={store.pot} phase={store.gamePhase} currentBetLevel={store.currentBetLevel}
         round={store.currentRound} smallBlind={store.smallBlind} bigBlind={store.bigBlind} />
 
-      {/* Player cards */}
-      <div className={styles.playerGrid}>
-        {seated.map(p => (
-          <PlayerCard key={p.player_id} player={p} isMe={p.player_id === store.playerId}
-            isDealer={p.seat === store.dealerSeat} isSB={p.seat === sbSeat} isBB={p.seat === bbSeat}
-            isAction={p.seat === store.actionSeat} gameActive={gameActive}
-            onActFor={handlePlayerClick} />
-        ))}
-      </div>
+      {/* Player table */}
+      <TableLayout
+        players={seated}
+        myPlayerId={store.playerId}
+        dealerSeat={store.dealerSeat}
+        sbSeat={sbSeat}
+        bbSeat={bbSeat}
+        actionSeat={store.actionSeat}
+        gameActive={gameActive}
+        onPlayerClick={handlePlayerClick}
+      />
 
       {/* My bar */}
       {myPlayer && (
@@ -162,7 +166,8 @@ export default function RoomPage() {
           players={store.players} onSettled={() => {}} />
       )}
 
-      <GameLog transactions={store.transactions} />
+      {/* Log drawer */}
+      <LogDrawer open={showLog} onClose={() => setShowLog(false)} transactions={store.transactions} />
 
       {/* Dialogs */}
       {actionPlayer && (

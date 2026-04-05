@@ -81,6 +81,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   handleWsMessage: (msg: WsMessage) => {
     const state = get();
+    const addLog = (type: string, note: string, amount: number = 0) => {
+      const entry: TransactionLog = {
+        id: Date.now(), tx_type: type, from_username: null, to_username: null,
+        amount, note, created_at: new Date().toISOString(),
+      };
+      set({ transactions: [entry, ...state.transactions].slice(0, 100) });
+    };
     switch (msg.type) {
       case 'player_joined': {
         const d = msg.data;
@@ -100,6 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case 'hand_started': {
         const d = msg.data;
+        addLog('hand', `第 ${d.round} 手开始`, 0);
         set({
           gamePhase: d.phase, dealerSeat: d.dealer_seat,
           actionSeat: d.action_seat, pot: d.pot,
@@ -114,6 +122,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case 'player_acted': {
         const d = msg.data;
+        const who = state.players.find(p => p.player_id === d.player_id)?.username || '?';
+        const actionLabels: Record<string, string> = { call: '跟注', fold: '弃牌', raise: '加注', allin: 'All-in' };
+        addLog(d.action, `${who} ${actionLabels[d.action] || d.action}${d.amount ? ' ' + d.amount : ''}`, d.amount || 0);
         set({
           pot: d.pot, currentBetLevel: d.current_bet_level ?? state.currentBetLevel,
           actionSeat: d.action_seat, gamePhase: d.phase,
@@ -140,6 +151,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case 'hand_settled': {
         const d = msg.data;
+        const winners = (d.winners || []).map((w: any) => `${w.username} +${w.amount}`).join(', ');
+        addLog('settle', `结算: ${winners}`, 0);
         set({
           gamePhase: 'lobby', pot: 0, currentBetLevel: 0, actionSeat: null,
           bettingComplete: false, currentRound: d.round,
@@ -152,6 +165,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case 'chips_updated': {
         const d = msg.data;
+        addLog('chips', d.reason || `${d.username} 筹码变化`, Math.abs(d.delta || d.amount || 0));
         set({ players: state.players.map(p => p.player_id === d.player_id ? { ...p, chips: d.chips } : p) });
         break;
       }
