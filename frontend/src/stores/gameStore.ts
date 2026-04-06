@@ -10,6 +10,7 @@ export interface Player {
   seat: number | null;
   total_buyin: number;
   status: string;
+  role: string;
   round_bet: number;
   hand_bet: number;
   is_folded: boolean;
@@ -55,7 +56,7 @@ interface GameStore {
 }
 
 const DEFAULT_PLAYER: Omit<Player, 'player_id' | 'username' | 'chips' | 'seat'> = {
-  is_active: true, total_buyin: 0, status: 'online',
+  is_active: true, total_buyin: 0, status: 'online', role: 'player',
   round_bet: 0, hand_bet: 0, is_folded: false,
 };
 
@@ -186,6 +187,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case 'player_status': {
         set({ players: state.players.map(p =>
           p.player_id === msg.data.player_id ? { ...p, status: msg.data.status } : p
+        )});
+        break;
+      }
+      case 'player_role_changed': {
+        const d = msg.data;
+        set({ players: state.players.map(p =>
+          p.player_id === d.player_id ? { ...p, role: d.role, seat: d.seat, chips: d.chips } : p
         )});
         break;
       }

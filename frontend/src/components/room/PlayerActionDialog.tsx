@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Toast } from 'antd-mobile';
-import { X, Hand, Ban, Coffee, DollarSign, ArrowRightLeft, Settings2 } from 'lucide-react';
+import { X, Hand, Ban, Coffee, Eye, ArrowRightLeft, Settings2 } from 'lucide-react';
 import http from '../../api/http';
 import { useUser } from '../../contexts/UserContext';
 import type { Player, GamePhase } from '../../stores/gameStore';
@@ -71,6 +71,18 @@ export default function PlayerActionDialog({
     }
   };
 
+  const handleSetRole = async (role: string) => {
+    try {
+      await http.post(`/rooms/${roomCode}/set-role`, {
+        player_id: player.player_id, role,
+      }, { headers });
+      Toast.show({ content: role === 'observer' ? '已设为观察者' : '已加入牌桌', icon: 'success', duration: 1000 });
+      onClose();
+    } catch (err: any) {
+      Toast.show({ content: err?.response?.data?.detail || '操作失败', icon: 'fail' });
+    }
+  };
+
   const suggestions = [
     { label: `${currentBetLevel + bigBlind}`, value: currentBetLevel + bigBlind },
     { label: `2x`, value: (currentBetLevel || bigBlind) * 2 },
@@ -133,10 +145,17 @@ export default function PlayerActionDialog({
           <div className={cardStyles.sectionTitle}>管理</div>
           <div className={cardStyles.mgmtGrid}>
             {gamePhase === 'lobby' && (
-              <button className={cardStyles.mgmtBtn} onClick={() => handleSetStatus(player.status !== 'sitout')}>
-                <Coffee size={14} />
-                {player.status === 'sitout' ? '取消暂离' : '设为暂离'}
-              </button>
+              <>
+                <button className={cardStyles.mgmtBtn} onClick={() => handleSetStatus(player.status !== 'sitout')}>
+                  <Coffee size={14} />
+                  {player.status === 'sitout' ? '取消暂离' : '设为暂离'}
+                </button>
+                {player.role === 'player' && (
+                  <button className={cardStyles.mgmtBtn} onClick={() => handleSetRole('observer')}>
+                    <Eye size={14} /> 设为观察者
+                  </button>
+                )}
+              </>
             )}
             <button className={cardStyles.mgmtBtn} onClick={() => { onClose(); onTransfer(); }}>
               <ArrowRightLeft size={14} /> 转账

@@ -19,6 +19,7 @@ import AdjustChipsDialog from '../components/admin/AdjustChipsDialog';
 import PreassignDialog from '../components/admin/PreassignDialog';
 import DashboardDialog from '../components/admin/DashboardDialog';
 import SeatManageDialog from '../components/room/SeatManageDialog';
+import ObserverBar from '../components/room/ObserverBar';
 import styles from './RoomPage.module.css';
 
 function copyToClipboardFallback(text: string) {
@@ -81,8 +82,9 @@ export default function RoomPage() {
   const gameActive = store.gamePhase !== 'lobby';
   const isMyTurn = myPlayer && myPlayer.seat === store.actionSeat;
   const seated = store.players
-    .filter(p => p.seat !== null && p.is_active)
+    .filter(p => p.seat !== null && p.is_active && p.role === 'player')
     .sort((a, b) => (a.seat || 0) - (b.seat || 0));
+  const observers = store.players.filter(p => p.is_active && p.role === 'observer');
 
   // SB/BB calculation
   const seatList = seated.map(p => p.seat!);
@@ -143,6 +145,9 @@ export default function RoomPage() {
         gameActive={gameActive}
         onPlayerClick={handlePlayerClick}
       />
+
+      {/* Observers */}
+      <ObserverBar observers={observers} roomCode={roomCode} userToken={userToken} gamePhase={store.gamePhase} />
 
       {/* My bar */}
       {myPlayer && (

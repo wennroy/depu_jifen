@@ -1,38 +1,30 @@
 .container {
   text-align: center;
-  margin-bottom: 16px;
-  padding: 14px 16px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
   background: var(--color-glass-bg);
   border: 1px solid var(--color-glass-border);
   border-radius: var(--radius-lg);
 }
 
-.phaseRow {
+.infoRow {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
-.phaseBadge {
+.phaseLabel {
   font-size: 0.7rem;
   font-weight: 700;
   font-family: var(--font-display);
   letter-spacing: 2px;
-  padding: 3px 12px;
-  border: 1px solid;
-  border-radius: 20px;
+  color: var(--color-accent);
 }
 
-.roundLabel {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  font-family: var(--font-display);
-}
-
-.blindsLabel {
-  font-size: 0.7rem;
+.meta {
+  font-size: 0.65rem;
   color: var(--color-text-muted);
   font-family: var(--font-display);
 }
@@ -41,7 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 4px;
 }
 
@@ -50,7 +42,7 @@
 }
 
 .potValue {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   font-family: var(--font-display);
   color: var(--color-accent-bright);
@@ -58,10 +50,10 @@
 }
 
 .betLevel {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
-  padding: 2px 10px;
+  padding: 2px 8px;
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px;
+  border-radius: 10px;
   font-family: var(--font-display);
 }
