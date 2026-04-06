@@ -73,7 +73,7 @@ def api_room_state(deps=Depends(get_room_and_player)):
     players = [
         PlayerState(
             player_id=p.id, username=p.username, chips=p.chips, is_active=p.is_active,
-            seat=p.seat, total_buyin=p.total_buyin, status=p.status,
+            seat=p.seat, total_buyin=p.total_buyin, status=p.status, role=p.role,
             round_bet=p.round_bet, hand_bet=p.hand_bet, is_folded=p.is_folded,
         )
         for p in room.players

@@ -18,6 +18,7 @@ class InviteRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
     seat: int | None = None
     chips: int | None = None
+    role: str = "player"  # "player" or "observer"
 
 
 @router.post("/invite")
@@ -35,15 +36,19 @@ async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player
     # Find if user exists
     target_user = db.query(User).filter(User.username == req.username.strip()).first()
 
-    # Auto-assign seat
-    taken_seats = {p.seat for p in room.players if p.seat is not None}
-    seat = req.seat
-    if not seat:
-        seat = 1
-        while seat in taken_seats:
-            seat += 1
+    # Observer: no seat, no chips
+    is_observer = req.role == "observer"
 
-    initial = req.chips or room.initial_chips
+    seat = None
+    initial = 0
+    if not is_observer:
+        taken_seats = {p.seat for p in room.players if p.seat is not None}
+        seat = req.seat
+        if not seat:
+            seat = 1
+            while seat in taken_seats:
+                seat += 1
+        initial = req.chips or room.initial_chips
 
     new_player = Player(
         room_id=room.id,
@@ -55,6 +60,7 @@ async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player
         is_active=True,
         total_buyin=initial,
         status="online" if target_user else "afk",
+        role=req.role,
     )
     db.add(new_player)
     db.flush()

@@ -46,6 +46,7 @@ class PlayerState(BaseModel):
     seat: int | None = None
     total_buyin: int = 0
     status: str = "online"
+    role: str = "player"
     round_bet: int = 0
     hand_bet: int = 0
     is_folded: bool = False

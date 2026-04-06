@@ -20,6 +20,7 @@ class Player(Base):
     seat = Column(Integer, nullable=True)
     total_buyin = Column(Integer, nullable=False, default=0)
     status = Column(String(20), nullable=False, default="online")  # online / afk / sitout
+    role = Column(String(20), nullable=False, default="player")  # player / observer
 
     # Per-hand state
     round_bet = Column(Integer, nullable=False, default=0)

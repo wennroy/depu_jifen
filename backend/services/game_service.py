@@ -7,17 +7,17 @@ PHASE_ORDER = ["lobby", "preflop", "flop", "turn", "river", "showdown"]
 
 
 def _active_players(room: Room) -> list[Player]:
-    """Players in the hand: active, not folded, not sitout, seated."""
+    """Players in the hand: active, not folded, not sitout, not observer, seated."""
     return sorted(
-        [p for p in room.players if p.is_active and not p.is_folded and p.status != "sitout" and p.seat is not None],
+        [p for p in room.players if p.is_active and not p.is_folded and p.status != "sitout" and p.role == "player" and p.seat is not None],
         key=lambda p: p.seat,
     )
 
 
 def _all_seated_playing(room: Room) -> list[Player]:
-    """All seated players in current hand (including folded, excluding sitout)."""
+    """All seated players in current hand (including folded, excluding sitout/observer)."""
     return sorted(
-        [p for p in room.players if p.is_active and p.status != "sitout" and p.seat is not None],
+        [p for p in room.players if p.is_active and p.status != "sitout" and p.role == "player" and p.seat is not None],
         key=lambda p: p.seat,
     )
 
@@ -186,20 +186,35 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         await _broadcast_acted(room, target, action, amount, betting_complete=True)
         return
 
-    # Check if betting round is complete:
-    # The round ends when the round_end_seat player has just acted
-    # AND all active players have matching bets (or are all-in)
+    # If the closer just folded, advance round_end_seat to prev non-folded player
+    if action == "fold" and target.seat == room.round_end_seat:
+        new_closer = _get_prev_seat(room, target.seat)
+        room.round_end_seat = new_closer
+
+    # Find next player to act
     next_seat = _get_next_seat(room, target.seat)
     betting_complete = False
 
-    if action != "fold" and target.seat == room.round_end_seat:
-        # The closer has acted — check if bets are matched
-        active_with_chips = [p for p in active if p.chips > 0]
-        if len(active_with_chips) <= 1 or all(p.round_bet == room.current_bet_level for p in active_with_chips):
-            room.action_seat = None
+    # Check if betting round is complete
+    active_with_chips = [p for p in active if p.chips > 0]
+    all_bets_matched = (
+        len(active_with_chips) <= 1
+        or all(p.round_bet == room.current_bet_level for p in active_with_chips)
+    )
+
+    if all_bets_matched:
+        # If the closer has already acted (next would go past them), round is done
+        # OR if the closer just acted this turn
+        if action != "fold" and target.seat == room.round_end_seat:
             betting_complete = True
-        else:
-            room.action_seat = next_seat
+        elif next_seat == room.round_end_seat and all_bets_matched:
+            # Next player IS the closer, and they already match → check if they need to act
+            closer_player = next((p for p in active if p.seat == room.round_end_seat), None)
+            if closer_player and closer_player.round_bet == room.current_bet_level:
+                betting_complete = True
+
+    if betting_complete:
+        room.action_seat = None
     else:
         room.action_seat = next_seat
 
