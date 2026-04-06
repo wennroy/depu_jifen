@@ -4,7 +4,7 @@ import { X, Hand, Ban, Coffee, DollarSign, ArrowRightLeft, Settings2 } from 'luc
 import http from '../../api/http';
 import { useUser } from '../../contexts/UserContext';
 import type { Player, GamePhase } from '../../stores/gameStore';
-import styles from './Dialog.module.css';
+import styles from './Modal.module.css';
 import cardStyles from './PlayerAction.module.css';
 
 interface Props {
@@ -80,19 +80,18 @@ export default function PlayerActionDialog({
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.dialog} onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
-        {/* Header */}
-        <div className={cardStyles.header}>
-          <div>
-            <span className={cardStyles.name}>{player.username}</span>
-            {player.seat && <span className={cardStyles.seat}>#{player.seat}</span>}
+      <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+        <div className={styles.header}>
+          <span className={styles.title}>{player.username} #{player.seat}</span>
+          <button className={styles.closeBtn} onClick={onClose}><X size={18} /></button>
+        </div>
+        <div style={{ padding: '0 20px 16px' }}>
+          <div className={cardStyles.statusLine}>
+            筹码: <strong style={{ color: 'var(--color-accent-bright)' }}>{player.chips.toLocaleString()}</strong>
+            {' · '}
+            {player.status === 'online' ? '在线' : player.status === 'afk' ? 'AFK' : '暂离'}
+            {player.is_folded && ' · 已弃牌'}
           </div>
-          <div className={cardStyles.chips}>{player.chips.toLocaleString()}</div>
-        </div>
-        <div className={cardStyles.statusLine}>
-          状态: {player.status === 'online' ? '在线' : player.status === 'afk' ? 'AFK' : '暂离'}
-          {player.is_folded && ' · 已弃牌'}
-        </div>
 
         {/* Game actions (only when it's their turn) */}
         {isTheirTurn && inGame && !player.is_folded && (
@@ -148,7 +147,7 @@ export default function PlayerActionDialog({
           </div>
         </div>
 
-        <button className={cardStyles.closeBtn} onClick={onClose}>关闭</button>
+        </div>
       </div>
     </div>
   );
