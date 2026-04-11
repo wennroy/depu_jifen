@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     ports:
-      - "${EXPOSE_PORT:-80}:8000"
+      - "127.0.0.1:8085:8000"
     volumes:
       - ./data:/app/data
     environment:
