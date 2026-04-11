@@ -212,9 +212,9 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         if action != "fold" and target.seat == room.round_end_seat:
             betting_complete = True
         elif next_seat == room.round_end_seat and all_bets_matched:
-            # Next player IS the closer, and they already match → check if they need to act
+            # Only skip the closer if they can't act (all-in with no chips)
             closer_player = next((p for p in active if p.seat == room.round_end_seat), None)
-            if closer_player and closer_player.round_bet == room.current_bet_level:
+            if closer_player and closer_player.chips == 0:
                 betting_complete = True
 
     if betting_complete:
