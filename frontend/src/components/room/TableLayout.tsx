@@ -1,4 +1,4 @@
-import type { Player, GamePhase } from '../../stores/gameStore';
+import type { Player } from '../../stores/gameStore';
 import PlayerCard from './PlayerCard';
 import styles from './TableLayout.module.css';
 

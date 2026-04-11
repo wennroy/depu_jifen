@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
 import http from '../../api/http';
-import { useGameStore } from '../../stores/gameStore';
+import { useUser } from '../../contexts/UserContext';
 import styles from './Forms.module.css';
 
 export default function CreateRoomForm() {
@@ -13,12 +13,16 @@ export default function CreateRoomForm() {
   const [bigBlind, setBigBlind] = useState(10);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const setIdentity = useGameStore(s => s.setIdentity);
+  const { user } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomName.trim() || !username.trim()) {
       Toast.show({ content: '请填写房间名和昵称' });
+      return;
+    }
+    if (!user?.userToken) {
+      Toast.show({ content: '登录状态已失效，请重新进入', icon: 'fail' });
       return;
     }
     setLoading(true);
@@ -28,13 +32,8 @@ export default function CreateRoomForm() {
         initial_chips: initialChips,
         small_blind: smallBlind,
         big_blind: bigBlind,
-      });
-      setIdentity({
-        roomCode: data.room_code,
-        playerToken: data.player_token,
-        playerId: data.player_id,
-        username: username.trim(),
-        adminToken: data.admin_token,
+      }, {
+        headers: { 'X-User-Token': user.userToken },
       });
       Toast.show({ content: '房间创建成功！', icon: 'success' });
       navigate(`/room/${data.room_code}`);

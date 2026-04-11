@@ -1,4 +1,3 @@
-import { Crown, Coffee, LogOut, Hand } from 'lucide-react';
 import type { Player } from '../../stores/gameStore';
 import styles from './PlayerCard.module.css';
 
