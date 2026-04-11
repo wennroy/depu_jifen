@@ -257,8 +257,8 @@ async def next_betting_round(db: Session, room: Room):
         room.round_end_seat = None
     else:
         active = _active_players(room)
-        active = [p for p in active if p.chips > 0]
-        if len(active) <= 1:
+        active_with_chips = [p for p in active if p.chips > 0]
+        if len(active_with_chips) <= 1:
             room.action_seat = None
             room.round_end_seat = None
             room.game_phase = "showdown"
@@ -266,9 +266,11 @@ async def next_betting_round(db: Session, room: Room):
             # Post-flop: action starts from first player after dealer
             first_seat = _get_next_seat(room, room.dealer_seat)
             room.action_seat = first_seat
-            # Round ends at dealer (last to act post-flop)
-            # = the player just before the first actor
-            room.round_end_seat = _get_prev_seat(room, first_seat)
+            # Round ends at the last player with chips before first_seat
+            # (i.e. the last to act in clockwise order)
+            chips_seats = sorted([p.seat for p in active_with_chips])
+            before = [s for s in chips_seats if s < first_seat]
+            room.round_end_seat = before[-1] if before else chips_seats[-1]
 
     db.commit()
 
