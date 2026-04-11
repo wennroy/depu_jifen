@@ -13,6 +13,8 @@ WORKDIR /app
 # Install dependencies
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir --retries 5 --timeout 120 \
+    -i https://mirrors.cloud.tencent.com/pypi/simple \
+    --trusted-host mirrors.cloud.tencent.com \
     fastapi "uvicorn[standard]" sqlalchemy pydantic python-dotenv
 
 # Copy backend
