@@ -1,11 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      args:
-        HTTP_PROXY: ${BUILD_HTTP_PROXY:-}
-        HTTPS_PROXY: ${BUILD_HTTPS_PROXY:-}
-        NO_PROXY: ${BUILD_NO_PROXY:-localhost,127.0.0.1,host.docker.internal}
+    build: .
     container_name: depu-jifen
     restart: unless-stopped
     env_file:
