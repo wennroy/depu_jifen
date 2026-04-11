@@ -18,7 +18,7 @@ export default function PlayerCard({ player, isMe, isDealer, isSB, isBB, isActio
 
   return (
     <div
-      className={`${styles.card} ${isAction ? styles.active : ''} ${player.is_folded ? styles.folded : ''} ${player.is_away ? styles.away : ''} ${isMe ? styles.me : ''}`}
+      className={`${styles.card} ${isAction ? styles.active : ''} ${player.is_folded ? styles.folded : ''} ${player.status === 'sitout' || player.status === 'afk' ? styles.away : ''} ${isMe ? styles.me : ''}`}
       onClick={() => { if (gameActive && !player.is_folded) onActFor(player.player_id); }}
     >
       {/* Glow effect for active player */}
@@ -30,7 +30,7 @@ export default function PlayerCard({ player, isMe, isDealer, isSB, isBB, isActio
           {isSB && <span className={styles.sbBadge}>SB</span>}
           {isBB && <span className={styles.bbBadge}>BB</span>}
           {player.is_folded && <span className={styles.foldBadge}>FOLD</span>}
-          {player.is_away && <span className={styles.awayBadge}>离开</span>}
+          {(player.status === 'sitout' || player.status === 'afk') && <span className={styles.awayBadge}>离开</span>}
           {isAllIn && <span className={styles.allinBadge}>ALL-IN</span>}
         </div>
         <span className={styles.seat}>#{player.seat}</span>

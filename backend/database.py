@@ -36,5 +36,5 @@ def get_db():
 
 
 def init_db():
-    from backend.models import Room, Player, Transaction  # noqa: F401
+    from backend.models import User, Room, Player, Transaction  # noqa: F401
     Base.metadata.create_all(bind=engine)

@@ -25,7 +25,6 @@ export default function CreateRoomForm() {
     try {
       const { data } = await http.post('/rooms', {
         name: roomName.trim(),
-        admin_username: username.trim(),
         initial_chips: initialChips,
         small_blind: smallBlind,
         big_blind: bigBlind,

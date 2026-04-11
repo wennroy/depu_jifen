@@ -140,10 +140,12 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
     if target.seat != room.action_seat:
         raise ValueError(f"当前不是 {target.username} 的回合")
 
+    action_amount = 0
     if action == "fold":
         target.is_folded = True
     elif action == "call":
         call_amount = min(room.current_bet_level - target.round_bet, target.chips)
+        action_amount = call_amount
         target.chips -= call_amount
         target.round_bet += call_amount
         target.hand_bet += call_amount
@@ -152,6 +154,7 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         if amount <= room.current_bet_level:
             raise ValueError(f"加注必须大于当前下注 {room.current_bet_level}")
         raise_cost = min(amount - target.round_bet, target.chips)
+        action_amount = raise_cost
         target.chips -= raise_cost
         target.round_bet += raise_cost
         target.hand_bet += raise_cost
@@ -162,6 +165,7 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
         room.round_end_seat = _get_prev_seat(room, target.seat)
     elif action == "allin":
         allin_amount = target.chips
+        action_amount = allin_amount
         target.chips = 0
         target.round_bet += allin_amount
         target.hand_bet += allin_amount
@@ -174,7 +178,7 @@ async def player_action(db: Session, room: Room, target: Player, action: str, am
 
     db.add(Transaction(room_id=room.id, round_number=room.current_round,
                        tx_type=action, from_player_id=target.id,
-                       amount=target.hand_bet if action != "fold" else 0,
+                       amount=action_amount,
                        note=f"{target.username} {action}" + (f" {amount}" if action == "raise" else "")))
 
     # Check if only one player left

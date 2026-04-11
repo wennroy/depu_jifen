@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toast } from 'antd-mobile';
 import { Trophy } from 'lucide-react';
 import http from '../../api/http';
@@ -19,6 +19,13 @@ export default function SettlePanel({ roomCode, playerToken, pot, players, onSet
     Object.fromEntries(activePlayers.map(p => [p.player_id, '0']))
   );
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const newActive = players.filter(p => p.is_active && !p.is_folded);
+    setAmounts(prev => Object.fromEntries(
+      newActive.map(p => [p.player_id, prev[p.player_id] ?? '0'])
+    ));
+  }, [players]);
 
   const total = Object.values(amounts).reduce((sum, v) => sum + (parseInt(v) || 0), 0);
   const remaining = pot - total;

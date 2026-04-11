@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
 @router.post("", response_model=CreateRoomResponse)
 def api_create_room(req: CreateRoomRequest, request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    result = create_room(db, user, req.name, req.admin_username, req.initial_chips,
+    result = create_room(db, user, req.name, req.initial_chips,
                          req.small_blind, req.big_blind)
     base_url = str(request.base_url).rstrip("/")
     result["share_link"] = f"{base_url}/join/{result['room_code']}"
@@ -102,4 +102,5 @@ def api_room_state(deps=Depends(get_room_and_player)):
         current_bet_level=room.current_bet_level,
         players=players, transactions=transactions,
         my_player_id=player.id,
+        is_creator=(user.id == room.creator_user_id),
     )

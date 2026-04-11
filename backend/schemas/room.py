@@ -1,12 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class CreateRoomRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    admin_username: str = Field(..., min_length=1, max_length=50)
     initial_chips: int = Field(default=1000, ge=100, le=1000000)
     small_blind: int = Field(default=5, ge=1)
     big_blind: int = Field(default=10, ge=1)
+
+    @model_validator(mode='after')
+    def validate_blinds(self):
+        if self.big_blind < self.small_blind:
+            raise ValueError('大盲必须大于等于小盲')
+        return self
 
 
 class CreateRoomResponse(BaseModel):
@@ -77,6 +82,7 @@ class RoomStateResponse(BaseModel):
     players: list[PlayerState]
     transactions: list[TransactionLog]
     my_player_id: str
+    is_creator: bool = False
 
 
 # Game actions
@@ -105,6 +111,12 @@ class PreassignPlayerRequest(BaseModel):
 class UpdateBlindsRequest(BaseModel):
     small_blind: int = Field(..., ge=1)
     big_blind: int = Field(..., ge=1)
+
+    @model_validator(mode='after')
+    def validate_blinds(self):
+        if self.big_blind < self.small_blind:
+            raise ValueError('大盲必须大于等于小盲')
+        return self
 
 
 class RebuyRequest(BaseModel):

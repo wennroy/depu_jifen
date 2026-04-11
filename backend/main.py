@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.config import DB_PATH
+from backend.config import DB_PATH, CORS_ORIGINS
 from backend.database import init_db
 from backend.routers import users, rooms, players, admin, game
 from backend.ws import handler as ws_handler
@@ -23,7 +23,7 @@ app = FastAPI(title="德扑筹码计分", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

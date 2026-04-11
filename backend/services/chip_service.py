@@ -107,9 +107,10 @@ async def transfer_chips(db: Session, sender: Player, receiver: Player, amount: 
 
 
 async def adjust_chips(db: Session, room: Room, player: Player, amount: int, note: str):
-    player.chips += amount
-    if player.chips < 0:
+    new_chips = player.chips + amount
+    if new_chips < 0:
         raise ValueError(f"{player.username} 筹码不能为负数")
+    player.chips = new_chips
 
     tx = Transaction(
         room_id=room.id,

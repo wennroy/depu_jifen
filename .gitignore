@@ -7,6 +7,7 @@ venv/
 *.sqlite3
 node_modules/
 frontend/dist/
+.env
 .env.local
 .env.production
 data/*.db

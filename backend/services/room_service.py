@@ -15,7 +15,7 @@ def generate_room_code(db: Session, length: int = 6) -> str:
     raise RuntimeError("Failed to generate unique room code")
 
 
-def create_room(db: Session, user: User, name: str, admin_username: str,
+def create_room(db: Session, user: User, name: str,
                 initial_chips: int, small_blind: int = 5, big_blind: int = 10) -> dict:
     room_code = generate_room_code(db)
 

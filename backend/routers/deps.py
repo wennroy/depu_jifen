@@ -24,3 +24,10 @@ def get_room_and_player(room_code: str = Path(...), user: User = Depends(get_cur
     if not player:
         raise HTTPException(403, "你不在该房间中")
     return room, player, user, db
+
+
+def get_room_admin(deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+    if user.id != room.creator_user_id:
+        raise HTTPException(403, "只有房主才能执行此操作")
+    return room, player, user, db

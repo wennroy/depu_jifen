@@ -45,6 +45,7 @@ interface GameStore {
   pot: number;
   currentBetLevel: number;
   bettingComplete: boolean;
+  isCreator: boolean;
   players: Player[];
   transactions: TransactionLog[];
   wsConnected: boolean;
@@ -65,7 +66,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentRound: 0, status: 'active', smallBlind: 5, bigBlind: 10,
   gamePhase: 'lobby', dealerSeat: null, actionSeat: null,
   pot: 0, currentBetLevel: 0, bettingComplete: false,
-  players: [], transactions: [], wsConnected: false,
+  isCreator: false, players: [], transactions: [], wsConnected: false,
 
   setRoomState: (state) => set({
     roomCode: state.room_code, roomName: state.room_name,
@@ -76,6 +77,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     currentBetLevel: state.current_bet_level,
     players: state.players, transactions: state.transactions,
     playerId: state.my_player_id, bettingComplete: false,
+    isCreator: state.is_creator || false,
   }),
 
   setWsConnected: (v) => set({ wsConnected: v }),
@@ -223,6 +225,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     currentRound: 0, status: 'active', smallBlind: 5, bigBlind: 10,
     gamePhase: 'lobby', dealerSeat: null, actionSeat: null,
     pot: 0, currentBetLevel: 0, bettingComplete: false,
-    players: [], transactions: [], wsConnected: false,
+    isCreator: false, players: [], transactions: [], wsConnected: false,
   }),
 }));

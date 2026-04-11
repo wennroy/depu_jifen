@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
 import { Share2, Loader2, UserPlus, CupSoda, Armchair, ScrollText } from 'lucide-react';
@@ -60,8 +60,14 @@ export default function RoomPage() {
       .catch(() => { Toast.show({ content: '获取房间信息失败', icon: 'fail' }); navigate('/'); });
   }, [userToken, roomCode]);
 
-  // WebSocket
-  useWebSocket(roomCode, userToken);
+  // WebSocket with reconnect state refresh
+  const handleReconnect = useCallback(() => {
+    if (!userToken || !roomCode) return;
+    http.get(`/rooms/${roomCode}/state`, { headers: { 'X-User-Token': userToken } })
+      .then(({ data }) => store.setRoomState(data))
+      .catch(() => {});
+  }, [userToken, roomCode]);
+  useWebSocket(roomCode, userToken, handleReconnect);
 
   const handleShare = async () => {
     const url = `${window.location.origin}/room/${roomCode}`;
@@ -117,7 +123,7 @@ export default function RoomPage() {
           <span className={styles.roomCode}>#{roomCode}</span>
         </div>
         <div className={styles.headerRight}>
-          {store.gamePhase === 'lobby' && (
+          {store.gamePhase === 'lobby' && store.isCreator && (
             <>
               <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="邀请玩家"><UserPlus size={16} /></button>
               <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位"><Armchair size={16} /></button>
@@ -157,16 +163,18 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* Game controls */}
-      <GameControlButton roomCode={roomCode} playerToken={userToken} phase={store.gamePhase} bettingComplete={store.bettingComplete} />
+      {/* Game controls (only visible to room creator) */}
+      {store.isCreator && (
+        <GameControlButton roomCode={roomCode} playerToken={userToken} phase={store.gamePhase} bettingComplete={store.bettingComplete} />
+      )}
 
       {/* BetActionPanel: only when it's MY turn */}
       {isMyTurn && gameActive && store.gamePhase !== 'showdown' && !store.bettingComplete && (
         <BetActionPanel />
       )}
 
-      {/* Settle */}
-      {store.gamePhase === 'showdown' && (
+      {/* Settle (only visible to room creator) */}
+      {store.gamePhase === 'showdown' && store.isCreator && (
         <SettlePanel roomCode={roomCode} playerToken={userToken} pot={store.pot}
           players={store.players} onSettled={() => {}} />
       )}

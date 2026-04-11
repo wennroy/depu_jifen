@@ -5,3 +5,4 @@ DB_PATH = os.getenv("DB_PATH", str(Path(__file__).parent.parent / "data" / "poke
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-depu-jifen-2024")
 DEFAULT_INITIAL_CHIPS = int(os.getenv("DEFAULT_INITIAL_CHIPS", "1000"))
 BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",")]

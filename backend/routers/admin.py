@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import Room, Player, Transaction, User
-from backend.routers.deps import get_room_and_player
+from backend.routers.deps import get_room_and_player, get_room_admin
 from backend.schemas.room import AdjustRequest, KickRequest, UpdateBlindsRequest, UpdateSeatsRequest
 from backend.services.chip_service import adjust_chips
 from backend.services.ws_manager import manager
@@ -22,7 +22,7 @@ class InviteRequest(BaseModel):
 
 
 @router.post("/invite")
-async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player)):
+async def api_invite_player(req: InviteRequest, deps=Depends(get_room_admin)):
     room, player, user, db = deps
 
     # Check if already invited
@@ -44,7 +44,10 @@ async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player
     if not is_observer:
         taken_seats = {p.seat for p in room.players if p.seat is not None}
         seat = req.seat
-        if not seat:
+        if seat:
+            if seat in taken_seats:
+                raise HTTPException(400, f"座位 {seat} 已被占用")
+        else:
             seat = 1
             while seat in taken_seats:
                 seat += 1
@@ -83,7 +86,7 @@ async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player
 
 
 @router.post("/adjust")
-async def api_adjust(req: AdjustRequest, deps=Depends(get_room_and_player)):
+async def api_adjust(req: AdjustRequest, deps=Depends(get_room_admin)):
     room, player, user, db = deps
     target = db.query(Player).filter(Player.id == req.player_id, Player.room_id == room.id).first()
     if not target:
@@ -96,7 +99,7 @@ async def api_adjust(req: AdjustRequest, deps=Depends(get_room_and_player)):
 
 
 @router.post("/kick")
-async def api_kick(req: KickRequest, deps=Depends(get_room_and_player)):
+async def api_kick(req: KickRequest, deps=Depends(get_room_admin)):
     room, player, user, db = deps
     target = db.query(Player).filter(
         Player.id == req.player_id, Player.room_id == room.id, Player.is_active == True,
@@ -113,7 +116,7 @@ async def api_kick(req: KickRequest, deps=Depends(get_room_and_player)):
 
 
 @router.post("/blinds")
-async def api_update_blinds(req: UpdateBlindsRequest, deps=Depends(get_room_and_player)):
+async def api_update_blinds(req: UpdateBlindsRequest, deps=Depends(get_room_admin)):
     room, player, user, db = deps
     room.small_blind = req.small_blind
     room.big_blind = req.big_blind
@@ -126,7 +129,7 @@ async def api_update_blinds(req: UpdateBlindsRequest, deps=Depends(get_room_and_
 
 
 @router.post("/update-seats")
-async def api_update_seats(req: UpdateSeatsRequest, deps=Depends(get_room_and_player)):
+async def api_update_seats(req: UpdateSeatsRequest, deps=Depends(get_room_admin)):
     room, player, user, db = deps
     if room.game_phase != "lobby":
         raise HTTPException(400, "只能在等待阶段调整座位")
@@ -160,7 +163,7 @@ async def api_dashboard(deps=Depends(get_room_and_player)):
             "player_id": p.id, "username": p.username, "seat": p.seat,
             "current_chips": p.chips, "initial_buyin": p.total_buyin,
             "rebuy_count": len(rebuys), "rebuy_total": sum(r.amount for r in rebuys),
-            "total_invested": p.total_buyin + sum(r.amount for r in rebuys),
+            "total_invested": p.total_buyin,
             "is_active": p.is_active,
         })
     return {"room_name": room.name, "room_code": room.room_code,
@@ -168,7 +171,7 @@ async def api_dashboard(deps=Depends(get_room_and_player)):
 
 
 @router.post("/close")
-async def api_close_room(deps=Depends(get_room_and_player)):
+async def api_close_room(deps=Depends(get_room_admin)):
     room, player, user, db = deps
     room.status = "closed"
     db.commit()

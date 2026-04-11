@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '../stores/gameStore';
 import { Toast } from 'antd-mobile';
 
-export function useWebSocket(roomCode: string | null, token: string | null) {
+export function useWebSocket(roomCode: string | null, token: string | null, onReconnect?: () => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const retryCount = useRef(0);
   const maxRetry = 15;
@@ -16,8 +16,12 @@ export function useWebSocket(roomCode: string | null, token: string | null) {
     const ws = new WebSocket(`${protocol}://${window.location.host}/ws/${roomCode}?token=${token}`);
 
     ws.onopen = () => {
+      const wasReconnect = retryCount.current > 0;
       retryCount.current = 0;
       setWsConnected(true);
+      if (wasReconnect && onReconnect) {
+        onReconnect();
+      }
       // Ping every 30s
       pingInterval.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -56,7 +60,7 @@ export function useWebSocket(roomCode: string | null, token: string | null) {
     };
 
     wsRef.current = ws;
-  }, [roomCode, token, handleWsMessage, setWsConnected]);
+  }, [roomCode, token, handleWsMessage, setWsConnected, onReconnect]);
 
   useEffect(() => {
     connect();

@@ -8,4 +8,12 @@ const http = axios.create({
   },
 });
 
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('depu_user_token');
+  if (token) {
+    config.headers['X-User-Token'] = token;
+  }
+  return config;
+});
+
 export default http;
