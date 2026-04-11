@@ -22,7 +22,7 @@ class InviteRequest(BaseModel):
 
 
 @router.post("/invite")
-async def api_invite_player(req: InviteRequest, deps=Depends(get_room_admin)):
+async def api_invite_player(req: InviteRequest, deps=Depends(get_room_and_player)):
     room, player, user, db = deps
 
     # Check if already invited

@@ -70,7 +70,7 @@ export default function RoomPage() {
   useWebSocket(roomCode, userToken, handleReconnect);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/room/${roomCode}`;
+    const url = `${window.location.origin}/join/${roomCode}`;
     try { if (navigator.share) { await navigator.share({ title: store.roomName, url }); return; } } catch {}
     try { await navigator.clipboard.writeText(url); } catch { copyToClipboardFallback(url); }
     Toast.show({ content: '链接已复制', icon: 'success' });
@@ -123,11 +123,11 @@ export default function RoomPage() {
           <span className={styles.roomCode}>#{roomCode}</span>
         </div>
         <div className={styles.headerRight}>
+          {store.gamePhase === 'lobby' && (
+            <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="邀请玩家"><UserPlus size={16} /></button>
+          )}
           {store.gamePhase === 'lobby' && store.isCreator && (
-            <>
-              <button className={styles.iconBtn} onClick={() => setShowPreassign(true)} title="邀请玩家"><UserPlus size={16} /></button>
-              <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位"><Armchair size={16} /></button>
-            </>
+            <button className={styles.iconBtn} onClick={() => setShowSeats(true)} title="调整座位"><Armchair size={16} /></button>
           )}
           <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单"><CupSoda size={16} /></button>
           <button className={styles.iconBtn} onClick={() => setShowLog(true)} title="记录"><ScrollText size={16} /></button>

@@ -33,7 +33,8 @@ class RoomSummary(BaseModel):
 def api_create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == req.username.strip()).first()
     if existing:
-        raise HTTPException(400, "该用户名已被使用")
+        # Login as existing user
+        return UserResponse(user_id=existing.id, username=existing.username, user_token=existing.user_token)
 
     user = User(username=req.username.strip())
     db.add(user)

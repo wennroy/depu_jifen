@@ -66,6 +66,62 @@ async def api_accept_invite(room_code: str, user: User = Depends(get_current_use
     return {"ok": True}
 
 
+@router.post("/{room_code}/join")
+async def api_join_room(room_code: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    room = db.query(Room).filter(Room.room_code == room_code.upper()).first()
+    if not room:
+        raise HTTPException(404, "房间不存在")
+    if room.status == "closed":
+        raise HTTPException(400, "房间已关闭")
+
+    # Already in room
+    existing = db.query(Player).filter(
+        Player.room_id == room.id, Player.user_id == user.id,
+    ).first()
+    if existing:
+        if not existing.is_active:
+            existing.is_active = True
+            existing.status = "online"
+            db.commit()
+            await manager.broadcast(room.room_code, {
+                "type": "player_joined",
+                "data": {
+                    "player_id": existing.id, "username": existing.username,
+                    "chips": existing.chips, "seat": existing.seat,
+                },
+            })
+        return {"ok": True, "already_joined": True}
+
+    # Auto-assign seat
+    taken_seats = {p.seat for p in room.players if p.seat is not None}
+    seat = 1
+    while seat in taken_seats:
+        seat += 1
+
+    new_player = Player(
+        room_id=room.id, user_id=user.id,
+        invited_username=user.username, username=user.username,
+        chips=room.initial_chips, seat=seat, is_active=True,
+        total_buyin=room.initial_chips, status="online", role="player",
+    )
+    db.add(new_player)
+    db.flush()
+    db.add(Transaction(
+        room_id=room.id, tx_type="join", to_player_id=new_player.id,
+        amount=room.initial_chips, note=f"{user.username} 加入房间",
+    ))
+    db.commit()
+
+    await manager.broadcast(room.room_code, {
+        "type": "player_joined",
+        "data": {
+            "player_id": new_player.id, "username": new_player.username,
+            "chips": new_player.chips, "seat": new_player.seat,
+        },
+    })
+    return {"ok": True}
+
+
 @router.get("/{room_code}/state", response_model=RoomStateResponse)
 def api_room_state(deps=Depends(get_room_and_player)):
     room, player, user, db = deps

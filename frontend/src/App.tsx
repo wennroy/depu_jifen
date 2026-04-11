@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { UserProvider, useUser } from './contexts/UserContext';
 import WelcomePage from './pages/WelcomePage';
 import HomePage from './pages/HomePage';
@@ -16,7 +17,25 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function JoinRedirect() {
   const { roomCode } = useParams();
-  return <Navigate to={`/room/${roomCode}`} replace />;
+  const { user } = useUser();
+  const navigate = useNavigate();
+  const [joining, setJoining] = useState(false);
+
+  useEffect(() => {
+    if (!user || !roomCode || joining) return;
+    setJoining(true);
+    import('./api/http').then(({ default: http }) => {
+      http.post(`/rooms/${roomCode.toUpperCase()}/join`, {}, {
+        headers: { 'X-User-Token': user.userToken },
+      }).then(() => {
+        navigate(`/room/${roomCode}`, { replace: true });
+      }).catch(() => {
+        navigate(`/room/${roomCode}`, { replace: true });
+      });
+    });
+  }, [user, roomCode]);
+
+  return null;
 }
 
 export default function App() {

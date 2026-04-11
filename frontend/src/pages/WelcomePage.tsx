@@ -41,7 +41,7 @@ export default function WelcomePage() {
               <span className="gold-text">德扑记分</span>
             </h1>
           </div>
-          <p className={styles.subtitle}>输入昵称开始使用</p>
+          <p className={styles.subtitle}>输入昵称登录或注册</p>
         </div>
 
         <div className={styles.formArea}>
@@ -58,7 +58,7 @@ export default function WelcomePage() {
               />
             </div>
             <button className={formStyles.submitBtn} type="submit" disabled={loading}>
-              {loading ? '创建中...' : '开始使用'}
+              {loading ? '登录中...' : '开始使用'}
             </button>
           </form>
         </div>
