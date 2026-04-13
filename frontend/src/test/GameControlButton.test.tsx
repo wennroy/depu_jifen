@@ -9,11 +9,14 @@ vi.mock('../api/http', () => ({
   },
 }));
 
-// Mock antd-mobile
-vi.mock('antd-mobile', () => ({
-  Toast: { show: vi.fn() },
-  Dialog: { confirm: vi.fn().mockResolvedValue(true) },
-}));
+// Mock antd-mobile — only Toast; Dialog is declarative now
+vi.mock('antd-mobile', async () => {
+  const actual = await vi.importActual('antd-mobile');
+  return {
+    ...actual,
+    Toast: { show: vi.fn() },
+  };
+});
 
 describe('GameControlButton', () => {
   beforeEach(() => {
@@ -120,7 +123,7 @@ describe('GameControlButton', () => {
       expect(screen.queryByText('开始游戏')).not.toBeInTheDocument();
     });
 
-    it('should call abort-hand API on confirm', async () => {
+    it('should call abort-hand API after confirm dialog', async () => {
       const http = (await import('../api/http')).default;
       render(
         <GameControlButton
@@ -131,7 +134,17 @@ describe('GameControlButton', () => {
         />
       );
 
+      // Click abort button → opens dialog
       fireEvent.click(screen.getByText('终止对局'));
+
+      // Dialog should appear with confirm text
+      await vi.waitFor(() => {
+        expect(screen.getByText('确定要终止本局吗？所有下注将退还给玩家。')).toBeInTheDocument();
+      });
+
+      // Click "终止" in the dialog
+      fireEvent.click(screen.getByText('终止'));
+
       await vi.waitFor(() => {
         expect(http.post).toHaveBeenCalledWith(
           '/rooms/ABC123/abort-hand',

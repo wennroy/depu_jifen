@@ -9,6 +9,7 @@ import formStyles from '../components/home/Forms.module.css';
 export default function WelcomePage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showConflict, setShowConflict] = useState(false);
   const { register, checkUsername } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,24 +40,9 @@ export default function WelcomePage() {
     setLoading(true);
     try {
       const exists = await checkUsername(username.trim());
+      setLoading(false);
       if (exists) {
-        setLoading(false);
-        const confirmed = await Dialog.confirm({
-          title: '该用户名已存在',
-          content: (
-            <div style={{ textAlign: 'center' }}>
-              <p>是否要以 <strong>{username.trim()}</strong> 的身份登录？</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 8 }}>
-                我们是通过用户名来确认身份哦
-              </p>
-            </div>
-          ),
-          confirmText: '登录',
-          cancelText: '取消',
-        });
-        if (confirmed) {
-          await doRegister();
-        }
+        setShowConflict(true);
         return;
       }
       await doRegister();
@@ -103,6 +89,27 @@ export default function WelcomePage() {
           </form>
         </div>
       </div>
+
+      {/* Username conflict dialog — declarative to avoid React 19 compat issues */}
+      <Dialog
+        visible={showConflict}
+        title="该用户名已存在"
+        content={
+          <div style={{ textAlign: 'center' }}>
+            <p>是否要以 <strong>{username.trim()}</strong> 的身份登录？</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 8 }}>
+              我们是通过用户名来确认身份哦
+            </p>
+          </div>
+        }
+        actions={[
+          [
+            { key: 'cancel', text: '取消', onClick: () => setShowConflict(false) },
+            { key: 'confirm', text: '登录', bold: true, onClick: () => { setShowConflict(false); doRegister(); } },
+          ],
+        ]}
+        onClose={() => setShowConflict(false)}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ interface Props {
 
 export default function GameControlButton({ roomCode, playerToken, phase, bettingComplete }: Props) {
   const [loading, setLoading] = useState(false);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
 
   const handleStart = async () => {
     setLoading(true);
@@ -41,13 +42,8 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
     }
   };
 
-  const handleAbort = async () => {
-    const confirmed = await Dialog.confirm({
-      content: '确定要终止本局吗？所有下注将退还给玩家。',
-      confirmText: '终止',
-      cancelText: '取消',
-    });
-    if (!confirmed) return;
+  const doAbort = async () => {
+    setShowAbortConfirm(false);
     setLoading(true);
     try {
       await http.post(`/rooms/${roomCode}/abort-hand`, {}, {
@@ -80,11 +76,22 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
         </button>
       )}
       {gameActive && (
-        <button className={styles.abortBtn} onClick={handleAbort} disabled={loading}>
+        <button className={styles.abortBtn} onClick={() => setShowAbortConfirm(true)} disabled={loading}>
           <Ban size={16} />
           <span>终止对局</span>
         </button>
       )}
+      <Dialog
+        visible={showAbortConfirm}
+        content="确定要终止本局吗？所有下注将退还给玩家。"
+        actions={[
+          [
+            { key: 'cancel', text: '取消', onClick: () => setShowAbortConfirm(false) },
+            { key: 'confirm', text: '终止', bold: true, danger: true, onClick: doAbort },
+          ],
+        ]}
+        onClose={() => setShowAbortConfirm(false)}
+      />
     </div>
   );
 }

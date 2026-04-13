@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import WelcomePage from '../pages/WelcomePage';
@@ -19,13 +19,14 @@ vi.mock('../contexts/UserContext', () => ({
   }),
 }));
 
-// Mock antd-mobile Toast and Dialog
-vi.mock('antd-mobile', () => ({
-  Toast: { show: vi.fn() },
-  Dialog: {
-    confirm: vi.fn(),
-  },
-}));
+// Mock antd-mobile Toast (Dialog is now declarative, no need to mock)
+vi.mock('antd-mobile', async () => {
+  const actual = await vi.importActual('antd-mobile');
+  return {
+    ...actual,
+    Toast: { show: vi.fn() },
+  };
+});
 
 function renderWelcome(initialEntries: string[] = ['/welcome'], state?: any) {
   return render(
@@ -85,13 +86,9 @@ describe('WelcomePage', () => {
     });
   });
 
-  it('should show confirm dialog for existing username', async () => {
+  it('should show conflict dialog for existing username', async () => {
     const user = userEvent.setup();
     mockCheckUsername.mockResolvedValue(true);
-
-    const { Dialog } = await import('antd-mobile');
-    (Dialog.confirm as ReturnType<typeof vi.fn>).mockResolvedValue(false);
-
     renderWelcome();
 
     const input = screen.getByPlaceholderText('输入你的昵称');
@@ -99,22 +96,27 @@ describe('WelcomePage', () => {
     await user.click(screen.getByText('开始使用'));
 
     await waitFor(() => {
-      expect(Dialog.confirm).toHaveBeenCalled();
+      expect(screen.getByText('该用户名已存在')).toBeDefined();
+      expect(screen.getByText(/是否要以/)).toBeDefined();
+      expect(screen.getByText(/我们是通过用户名来确认身份哦/)).toBeDefined();
     });
   });
 
   it('should register when user confirms login for existing username', async () => {
     const user = userEvent.setup();
     mockCheckUsername.mockResolvedValue(true);
-
-    const { Dialog } = await import('antd-mobile');
-    (Dialog.confirm as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-
     renderWelcome();
 
     const input = screen.getByPlaceholderText('输入你的昵称');
     await user.type(input, 'existinguser');
     await user.click(screen.getByText('开始使用'));
+
+    await waitFor(() => {
+      expect(screen.getByText('该用户名已存在')).toBeDefined();
+    });
+
+    // Click the "登录" button in the dialog
+    fireEvent.click(screen.getByText('登录'));
 
     await waitFor(() => {
       expect(mockRegister).toHaveBeenCalledWith('existinguser');
@@ -124,10 +126,6 @@ describe('WelcomePage', () => {
   it('should not register when user cancels confirm dialog', async () => {
     const user = userEvent.setup();
     mockCheckUsername.mockResolvedValue(true);
-
-    const { Dialog } = await import('antd-mobile');
-    (Dialog.confirm as ReturnType<typeof vi.fn>).mockResolvedValue(false);
-
     renderWelcome();
 
     const input = screen.getByPlaceholderText('输入你的昵称');
@@ -135,8 +133,11 @@ describe('WelcomePage', () => {
     await user.click(screen.getByText('开始使用'));
 
     await waitFor(() => {
-      expect(Dialog.confirm).toHaveBeenCalled();
+      expect(screen.getByText('该用户名已存在')).toBeDefined();
     });
+
+    // Click "取消" using fireEvent (antd-mobile dialog has pointer-events restrictions)
+    fireEvent.click(screen.getByText('取消'));
     expect(mockRegister).not.toHaveBeenCalled();
   });
 

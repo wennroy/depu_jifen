@@ -47,6 +47,7 @@ export default function RoomPage() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [showSeats, setShowSeats] = useState(false);
   const [showLog, setShowLog] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const roomCode = urlRoomCode?.toUpperCase() || '';
@@ -77,15 +78,12 @@ export default function RoomPage() {
     Toast.show({ content: '链接已复制', icon: 'success' });
   };
 
-  const handleLeave = async () => {
-    const gameActive = store.gamePhase !== 'lobby';
-    const confirmed = await Dialog.confirm({
-      title: '离开房间',
-      content: gameActive ? '离开后将自动弃牌，已下的注不会退回。确定要离开吗？' : '确定要离开房间吗？你随时可以重新加入。',
-      confirmText: '确定离开',
-      cancelText: '取消',
-    });
-    if (!confirmed) return;
+  const handleLeave = () => {
+    setShowLeaveConfirm(true);
+  };
+
+  const doLeave = async () => {
+    setShowLeaveConfirm(false);
     try {
       await http.post(`/rooms/${roomCode}/leave`, {}, { headers });
       navigate('/', { replace: true });
@@ -240,6 +238,22 @@ export default function RoomPage() {
         <DashboardDialog roomCode={roomCode} adminToken={userToken}
           onClose={() => setShowDashboard(false)} />
       )}
+
+      {/* Leave room confirmation */}
+      <Dialog
+        visible={showLeaveConfirm}
+        title="离开房间"
+        content={store.gamePhase !== 'lobby'
+          ? '离开后将自动弃牌，已下的注不会退回。确定要离开吗？'
+          : '确定要离开房间吗？你随时可以重新加入。'}
+        actions={[
+          [
+            { key: 'cancel', text: '取消', onClick: () => setShowLeaveConfirm(false) },
+            { key: 'confirm', text: '确定离开', bold: true, danger: true, onClick: doLeave },
+          ],
+        ]}
+        onClose={() => setShowLeaveConfirm(false)}
+      />
     </div>
   );
 }
