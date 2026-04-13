@@ -11,11 +11,12 @@ interface UserContextType {
   user: UserInfo | null;
   loading: boolean;
   register: (username: string) => Promise<void>;
+  checkUsername: (username: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const UserContext = createContext<UserContextType>({
-  user: null, loading: true, register: async () => {}, logout: () => {},
+  user: null, loading: true, register: async () => {}, checkUsername: async () => false, logout: () => {},
 });
 
 export function useUser() {
@@ -51,13 +52,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUser(info);
   };
 
+  const checkUsername = async (username: string): Promise<boolean> => {
+    const { data } = await http.get('/users/check', { params: { username: username.trim() } });
+    return data.exists;
+  };
+
   const logout = () => {
     localStorage.removeItem('depu_user_token');
     setUser(null);
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, register, logout }}>
+    <UserContext.Provider value={{ user, loading, register, checkUsername, logout }}>
       {children}
     </UserContext.Provider>
   );

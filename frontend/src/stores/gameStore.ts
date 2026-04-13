@@ -226,6 +226,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
         )});
         break;
       }
+      case 'player_left': {
+        const d = msg.data;
+        addLog('leave', `${d.username} 离开了房间`, 0);
+        set({
+          gamePhase: d.game_phase || state.gamePhase,
+          actionSeat: d.action_seat !== undefined ? d.action_seat : state.actionSeat,
+          players: state.players.map(p =>
+            p.player_id === d.player_id
+              ? { ...p, is_active: false, seat: null, status: 'offline', is_folded: true }
+              : p
+          ),
+        });
+        break;
+      }
       case 'room_closed': {
         set({ status: 'closed' });
         break;

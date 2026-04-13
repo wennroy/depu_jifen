@@ -12,10 +12,15 @@ class CreateUserRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
 
 
+class CheckUsernameResponse(BaseModel):
+    exists: bool
+
+
 class UserResponse(BaseModel):
     user_id: str
     username: str
     user_token: str
+    is_new: bool = True
 
 
 class RoomSummary(BaseModel):
@@ -27,14 +32,20 @@ class RoomSummary(BaseModel):
     status: str  # player status in room
     game_phase: str
     is_invited: bool  # True if not yet accepted (user_id is null or just invited)
+    is_active: bool = True
+
+
+@router.get("/check", response_model=CheckUsernameResponse)
+def api_check_username(username: str, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.username == username.strip()).first()
+    return CheckUsernameResponse(exists=existing is not None)
 
 
 @router.post("", response_model=UserResponse)
 def api_create_user(req: CreateUserRequest, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == req.username.strip()).first()
     if existing:
-        # Login as existing user
-        return UserResponse(user_id=existing.id, username=existing.username, user_token=existing.user_token)
+        return UserResponse(user_id=existing.id, username=existing.username, user_token=existing.user_token, is_new=False)
 
     user = User(username=req.username.strip())
     db.add(user)
@@ -59,7 +70,7 @@ def api_get_me(x_user_token: str = Header(...), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_token == x_user_token).first()
     if not user:
         raise HTTPException(401, "无效的用户令牌")
-    return UserResponse(user_id=user.id, username=user.username, user_token=user.user_token)
+    return UserResponse(user_id=user.id, username=user.username, user_token=user.user_token, is_new=False)
 
 
 @router.get("/me/rooms")
@@ -82,7 +93,8 @@ def api_my_rooms(x_user_token: str = Header(...), db: Session = Depends(get_db))
             chips=p.chips,
             status=p.status,
             game_phase=room.game_phase,
-            is_invited=not p.is_active,
+            is_invited=False,
+            is_active=p.is_active,
         ))
 
     return {"rooms": rooms}

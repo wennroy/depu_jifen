@@ -364,6 +364,50 @@ async def abort_hand(db: Session, room: Room):
     })
 
 
+async def leave_room(db: Session, room: Room, player: Player):
+    """Player voluntarily leaves the room. Auto-folds if in a game."""
+    if room.game_phase != "lobby" and not player.is_folded and player.role == "player" and player.seat is not None:
+        # Auto-fold the player (bets stay in pot)
+        player.is_folded = True
+
+        # If this player is the current actor, advance action
+        if player.seat == room.action_seat:
+            db.add(Transaction(
+                room_id=room.id, round_number=room.current_round,
+                tx_type="fold", from_player_id=player.id,
+                amount=0, note=f"{player.username} 离桌自动弃牌",
+            ))
+
+            # If they were the round_end_seat, move it
+            if player.seat == room.round_end_seat:
+                room.round_end_seat = _get_prev_seat(room, player.seat)
+
+            # Check if only one player left
+            active = _active_players(room)
+            if len(active) <= 1:
+                room.action_seat = None
+                room.game_phase = "showdown"
+            else:
+                room.action_seat = _get_next_seat(room, player.seat)
+
+    player.is_active = False
+    old_seat = player.seat
+    player.seat = None
+    player.status = "offline"
+    db.commit()
+
+    await manager.broadcast(room.room_code, {
+        "type": "player_left",
+        "data": {
+            "player_id": player.id,
+            "username": player.username,
+            "seat": old_seat,
+            "game_phase": room.game_phase,
+            "action_seat": room.action_seat,
+        },
+    })
+
+
 async def set_away(db: Session, room: Room, player: Player, away: bool):
     """Toggle sitout status. away=True → sitout, away=False → online."""
     player.status = "sitout" if away else "online"

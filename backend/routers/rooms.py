@@ -11,6 +11,7 @@ from backend.schemas.room import (
 )
 from backend.services.room_service import create_room
 from backend.services.ws_manager import manager
+from backend.services.game_service import leave_room
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
@@ -82,6 +83,13 @@ async def api_join_room(room_code: str, user: User = Depends(get_current_user), 
         if not existing.is_active:
             existing.is_active = True
             existing.status = "online"
+            # Re-assign seat if needed
+            if existing.seat is None:
+                taken_seats = {p.seat for p in room.players if p.seat is not None}
+                seat = 1
+                while seat in taken_seats:
+                    seat += 1
+                existing.seat = seat
             db.commit()
             await manager.broadcast(room.room_code, {
                 "type": "player_joined",
@@ -119,6 +127,13 @@ async def api_join_room(room_code: str, user: User = Depends(get_current_user), 
             "chips": new_player.chips, "seat": new_player.seat,
         },
     })
+    return {"ok": True}
+
+
+@router.post("/{room_code}/leave")
+async def api_leave_room(deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+    await leave_room(db, room, player)
     return {"ok": True}
 
 

@@ -449,6 +449,75 @@ describe('gameStore', () => {
     });
   });
 
+  describe('handleWsMessage - player_left', () => {
+    it('should mark player as inactive and update game state', () => {
+      useGameStore.getState().setRoomState(makeRoomState({
+        game_phase: 'preflop',
+        action_seat: 2,
+      }));
+
+      useGameStore.getState().handleWsMessage({
+        type: 'player_left',
+        data: {
+          player_id: 'p2',
+          username: 'Bob',
+          seat: 2,
+          game_phase: 'preflop',
+          action_seat: 3,
+        },
+      });
+
+      const s = useGameStore.getState();
+      const p2 = s.players.find(p => p.player_id === 'p2');
+      expect(p2?.is_active).toBe(false);
+      expect(p2?.seat).toBeNull();
+      expect(p2?.status).toBe('offline');
+      expect(p2?.is_folded).toBe(true);
+      expect(s.actionSeat).toBe(3);
+    });
+
+    it('should add transaction log entry on player leave', () => {
+      useGameStore.getState().setRoomState(makeRoomState());
+
+      useGameStore.getState().handleWsMessage({
+        type: 'player_left',
+        data: {
+          player_id: 'p1',
+          username: 'Alice',
+          seat: 1,
+          game_phase: 'lobby',
+          action_seat: null,
+        },
+      });
+
+      const logs = useGameStore.getState().transactions;
+      expect(logs[0].note).toContain('Alice');
+      expect(logs[0].note).toContain('离开');
+    });
+
+    it('should update game phase to showdown when last player triggers it', () => {
+      useGameStore.getState().setRoomState(makeRoomState({
+        game_phase: 'preflop',
+        action_seat: 1,
+      }));
+
+      useGameStore.getState().handleWsMessage({
+        type: 'player_left',
+        data: {
+          player_id: 'p1',
+          username: 'Alice',
+          seat: 1,
+          game_phase: 'showdown',
+          action_seat: null,
+        },
+      });
+
+      const s = useGameStore.getState();
+      expect(s.gamePhase).toBe('showdown');
+      expect(s.actionSeat).toBeNull();
+    });
+  });
+
   describe('transaction log', () => {
     it('should add log entries on hand_started', () => {
       useGameStore.getState().setRoomState(makeRoomState());

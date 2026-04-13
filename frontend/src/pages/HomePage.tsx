@@ -15,6 +15,7 @@ interface RoomSummary {
   status: string;
   game_phase: string;
   is_invited: boolean;
+  is_active: boolean;
 }
 
 export default function HomePage() {
@@ -59,6 +60,15 @@ export default function HomePage() {
     }
   };
 
+  const handleRejoin = async (roomCode: string) => {
+    try {
+      await http.post(`/rooms/${roomCode}/join`, {}, { headers });
+      navigate(`/room/${roomCode}`);
+    } catch (err: any) {
+      Toast.show({ content: err?.response?.data?.detail || '重新加入失败', icon: 'fail' });
+    }
+  };
+
   return (
     <div className="felt-bg" style={{ minHeight: '100dvh', padding: '20px 16px' }}>
       <div style={{ maxWidth: 500, margin: '0 auto' }}>
@@ -86,15 +96,23 @@ export default function HomePage() {
             </div>
           )}
           {rooms.map(r => (
-            <div key={r.room_id} className="glass-card" style={{ padding: '14px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-              onClick={() => r.is_invited ? handleAccept(r.room_code) : navigate(`/room/${r.room_code}`)}>
+            <div key={r.room_id} className="glass-card" style={{ padding: '14px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', opacity: r.is_active ? 1 : 0.7 }}
+              onClick={() => {
+                if (!r.is_active) { handleRejoin(r.room_code); }
+                else if (r.is_invited) { handleAccept(r.room_code); }
+                else { navigate(`/room/${r.room_code}`); }
+              }}>
               <div>
                 <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: '0.95rem' }}>{r.room_name}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                  #{r.room_code} · {r.game_phase === 'lobby' ? '等待中' : '游戏中'} · 座位 {r.seat}
+                  #{r.room_code} · {!r.is_active ? '已离开' : r.game_phase === 'lobby' ? '等待中' : '游戏中'}{r.is_active && r.seat ? ` · 座位 ${r.seat}` : ''}
                 </div>
               </div>
-              {r.is_invited ? (
+              {!r.is_active ? (
+                <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent-dim))', border: 'none', borderRadius: 8, color: 'var(--color-bg-deep)', fontWeight: 700, fontSize: '0.8rem', fontFamily: 'var(--font-display)', cursor: 'pointer' }}>
+                  <LogIn size={12} style={{ marginRight: 4 }} /> 重新加入
+                </button>
+              ) : r.is_invited ? (
                 <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent-dim))', border: 'none', borderRadius: 8, color: 'var(--color-bg-deep)', fontWeight: 700, fontSize: '0.8rem', fontFamily: 'var(--font-display)', cursor: 'pointer' }}>
                   <LogIn size={12} style={{ marginRight: 4 }} /> 接受
                 </button>

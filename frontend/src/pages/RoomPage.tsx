@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Toast } from 'antd-mobile';
-import { Share2, Loader2, UserPlus, CupSoda, Armchair, ScrollText } from 'lucide-react';
+import { Share2, Loader2, UserPlus, CupSoda, Armchair, ScrollText, DoorOpen } from 'lucide-react';
 import http from '../api/http';
 import { useUser } from '../contexts/UserContext';
 import { useGameStore } from '../stores/gameStore';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { Dialog } from 'antd-mobile';
 import PotDisplay from '../components/room/PotDisplay';
 import TableLayout from '../components/room/TableLayout';
 import GameControlButton from '../components/room/GameControlButton';
@@ -76,6 +77,23 @@ export default function RoomPage() {
     Toast.show({ content: '链接已复制', icon: 'success' });
   };
 
+  const handleLeave = async () => {
+    const gameActive = store.gamePhase !== 'lobby';
+    const confirmed = await Dialog.confirm({
+      title: '离开房间',
+      content: gameActive ? '离开后将自动弃牌，已下的注不会退回。确定要离开吗？' : '确定要离开房间吗？你随时可以重新加入。',
+      confirmText: '确定离开',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    try {
+      await http.post(`/rooms/${roomCode}/leave`, {}, { headers });
+      navigate('/', { replace: true });
+    } catch (err: any) {
+      Toast.show({ content: err?.response?.data?.detail || '离开失败', icon: 'fail' });
+    }
+  };
+
   if (!loaded) {
     return (
       <div className="felt-bg" style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -131,6 +149,7 @@ export default function RoomPage() {
           )}
           <button className={styles.iconBtn} onClick={() => setShowDashboard(true)} title="账单"><CupSoda size={16} /></button>
           <button className={styles.iconBtn} onClick={() => setShowLog(true)} title="记录"><ScrollText size={16} /></button>
+          <button className={styles.iconBtn} onClick={handleLeave} title="离开房间"><DoorOpen size={16} /></button>
           <button className={styles.shareBtn} onClick={handleShare}><Share2 size={14} /></button>
           <span className={`${styles.statusDot} ${store.wsConnected ? styles.online : styles.offline}`} />
         </div>

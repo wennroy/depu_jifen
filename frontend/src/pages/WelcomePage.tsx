@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Toast } from 'antd-mobile';
+import { Toast, Dialog } from 'antd-mobile';
 import { Spade } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import styles from './HomePage.module.css';
@@ -9,9 +9,26 @@ import formStyles from '../components/home/Forms.module.css';
 export default function WelcomePage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useUser();
+  const { register, checkUsername } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const redirect = (location.state as any)?.from || '/';
+  // Extract room code from /join/:roomCode path
+  const joinMatch = typeof redirect === 'string' ? redirect.match(/^\/join\/([A-Za-z0-9]+)/) : null;
+  const inviteRoomCode = joinMatch ? joinMatch[1].toUpperCase() : null;
+
+  const doRegister = async () => {
+    setLoading(true);
+    try {
+      await register(username.trim());
+      navigate(redirect, { replace: true });
+    } catch (err: any) {
+      Toast.show({ content: err?.response?.data?.detail || '创建失败', icon: 'fail' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,12 +38,30 @@ export default function WelcomePage() {
     }
     setLoading(true);
     try {
-      await register(username.trim());
-      const redirect = (location.state as any)?.from || '/';
-      navigate(redirect, { replace: true });
+      const exists = await checkUsername(username.trim());
+      if (exists) {
+        setLoading(false);
+        const confirmed = await Dialog.confirm({
+          title: '该用户名已存在',
+          content: (
+            <div style={{ textAlign: 'center' }}>
+              <p>是否要以 <strong>{username.trim()}</strong> 的身份登录？</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 8 }}>
+                我们是通过用户名来确认身份哦
+              </p>
+            </div>
+          ),
+          confirmText: '登录',
+          cancelText: '取消',
+        });
+        if (confirmed) {
+          await doRegister();
+        }
+        return;
+      }
+      await doRegister();
     } catch (err: any) {
       Toast.show({ content: err?.response?.data?.detail || '创建失败', icon: 'fail' });
-    } finally {
       setLoading(false);
     }
   };
@@ -42,6 +77,11 @@ export default function WelcomePage() {
             </h1>
           </div>
           <p className={styles.subtitle}>输入昵称登录或注册</p>
+          {inviteRoomCode && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-accent)', marginTop: 8, fontWeight: 600 }}>
+              你正在被邀请加入房间 #{inviteRoomCode}
+            </p>
+          )}
         </div>
 
         <div className={styles.formArea}>
