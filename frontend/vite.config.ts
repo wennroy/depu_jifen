@@ -7,6 +7,12 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: './src/test/setup.ts',
+      css: { modules: { classNameStrategy: 'non-scoped' } },
+    },
     server: {
       host: true,
       port: parseInt(env.FRONTEND_PORT || '3000'),

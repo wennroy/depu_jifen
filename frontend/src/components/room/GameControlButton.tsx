@@ -60,6 +60,8 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
     }
   };
 
+  const gameActive = phase !== 'lobby';
+
   if (phase === 'lobby') {
     return (
       <button className={styles.startBtn} onClick={handleStart} disabled={loading}>
@@ -68,8 +70,6 @@ export default function GameControlButton({ roomCode, playerToken, phase, bettin
       </button>
     );
   }
-
-  const gameActive = phase !== 'lobby';
 
   return (
     <div className={styles.controlGroup}>
