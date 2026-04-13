@@ -187,6 +187,33 @@ tail -f /var/log/apache2/depu-jifen-error.log
 
 ---
 
+## 更新前端依赖后重新生成 lock 文件
+
+项目使用 `node:22-alpine`（npm 10）构建 Docker 镜像。如果你在本地使用 npm 11+，直接运行 `npm install` 生成的 `package-lock.json` 格式与 Docker 环境不兼容，会导致 `npm ci` 失败（报 `Missing: @emnapi/core` 等错误）。
+
+**每次修改 `frontend/package.json` 后**，必须用以下命令重新生成 lock 文件：
+
+```bash
+# 在项目根目录运行
+docker run --rm \
+  -v "$(pwd)/frontend:/app" \
+  -w /app \
+  node:22-alpine \
+  npm install --package-lock-only
+```
+
+然后将更新后的 `package-lock.json` 一并提交：
+
+```bash
+git add frontend/package-lock.json
+git commit -m "chore: regenerate package-lock.json with node:22-alpine"
+```
+
+> **为什么不直接升级 Docker 镜像到 node:24？**
+> `node:22-alpine` 是目前的 LTS 版本，稳定性更好。如果将来升级镜像版本，需同步更新本命令中的镜像标签。
+
+---
+
 ## 故障排查
 
 | 问题 | 检查方法 |
