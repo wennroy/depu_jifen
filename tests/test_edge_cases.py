@@ -1,7 +1,7 @@
 """Tests for complex multi-hand and edge-case scenarios."""
 import pytest
 from backend.services.game_service import (
-    start_hand, player_action, next_betting_round, settle_hand, set_away,
+    start_hand, player_action, next_betting_round, settle_hand, set_away, abort_hand,
 )
 from tests.conftest import setup_game
 
@@ -118,6 +118,84 @@ class TestEdgeCases:
             await player_action(db, room, actor, "call")
 
         assert players[2].seat not in acted_seats
+
+
+@pytest.mark.asyncio
+class TestAbortHand:
+    async def test_abort_returns_blinds(self, db, mock_manager):
+        """Aborting right after start returns blind bets."""
+        room, players, _ = setup_game(db, 3, small_blind=5, big_blind=10)
+        chips_before = [p.chips for p in players]
+        await start_hand(db, room)
+        await abort_hand(db, room)
+
+        assert room.game_phase == "lobby"
+        assert room.pot == 0
+        # All chips restored
+        for p, before in zip(players, chips_before):
+            assert p.chips == before
+
+    async def test_abort_returns_all_bets(self, db, mock_manager):
+        """Aborting mid-hand returns all bets to players."""
+        room, players, _ = setup_game(db, 3, small_blind=5, big_blind=10)
+        await start_hand(db, room)
+
+        # UTG raises to 30
+        actor = _acting_player(room, players)
+        await player_action(db, room, actor, "raise", 30)
+        # SB calls
+        actor = _acting_player(room, players)
+        await player_action(db, room, actor, "call")
+
+        total_before = sum(p.chips for p in players)
+        pot = room.pot
+        await abort_hand(db, room)
+
+        assert room.game_phase == "lobby"
+        assert room.pot == 0
+        total_after = sum(p.chips for p in players)
+        assert total_after == total_before + pot
+
+    async def test_abort_resets_state(self, db, mock_manager):
+        """Abort resets action_seat, round_end_seat, folds, etc."""
+        room, players, _ = setup_game(db, 3, small_blind=5, big_blind=10)
+        await start_hand(db, room)
+
+        actor = _acting_player(room, players)
+        await player_action(db, room, actor, "fold")
+        await abort_hand(db, room)
+
+        assert room.action_seat is None
+        assert room.round_end_seat is None
+        for p in players:
+            assert not p.is_folded
+            assert p.round_bet == 0
+            assert p.hand_bet == 0
+
+    async def test_abort_in_lobby_raises(self, db, mock_manager):
+        """Can't abort when no hand is in progress."""
+        room, players, _ = setup_game(db, 3)
+        with pytest.raises(ValueError, match="没有进行中的对局"):
+            await abort_hand(db, room)
+
+    async def test_can_start_new_hand_after_abort(self, db, mock_manager):
+        """After aborting, a new hand can be started."""
+        room, players, _ = setup_game(db, 3, small_blind=5, big_blind=10)
+        await start_hand(db, room)
+        await abort_hand(db, room)
+        await start_hand(db, room)
+        assert room.game_phase == "preflop"
+
+    async def test_abort_broadcasts_message(self, db, mock_manager):
+        """Abort should broadcast hand_aborted message."""
+        room, players, _ = setup_game(db, 3, small_blind=5, big_blind=10)
+        await start_hand(db, room)
+        await abort_hand(db, room)
+
+        abort_msgs = [c for c in mock_manager if c["message"]["type"] == "hand_aborted"]
+        assert len(abort_msgs) == 1
+        data = abort_msgs[0]["message"]["data"]
+        assert "players" in data
 
 
 @pytest.mark.asyncio

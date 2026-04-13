@@ -329,6 +329,41 @@ async def settle_hand(db: Session, room: Room, winners: list[dict]):
     })
 
 
+async def abort_hand(db: Session, room: Room):
+    """Abort current hand and return all bets to players."""
+    if room.game_phase in ("lobby",):
+        raise ValueError("当前没有进行中的对局")
+
+    # Return hand_bet to each player
+    for p in _all_seated_playing(room):
+        if p.hand_bet > 0:
+            p.chips += p.hand_bet
+            db.add(Transaction(
+                room_id=room.id, round_number=room.current_round,
+                tx_type="refund", to_player_id=p.id,
+                amount=p.hand_bet,
+                note=f"对局终止，退还 {p.hand_bet}",
+            ))
+            p.hand_bet = 0
+            p.round_bet = 0
+        p.is_folded = False
+
+    room.game_phase = "lobby"
+    room.pot = 0
+    room.current_bet_level = 0
+    room.action_seat = None
+    room.round_end_seat = None
+    db.commit()
+
+    await manager.broadcast(room.room_code, {
+        "type": "hand_aborted",
+        "data": {
+            "round": room.current_round,
+            "players": _player_states_snapshot(room),
+        },
+    })
+
+
 async def set_away(db: Session, room: Room, player: Player, away: bool):
     """Toggle sitout status. away=True → sitout, away=False → online."""
     player.status = "sitout" if away else "online"

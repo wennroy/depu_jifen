@@ -163,8 +163,8 @@ export default function RoomPage() {
         </div>
       )}
 
-      {/* Game controls (only visible to room creator) */}
-      {store.isCreator && (
+      {/* Game controls (visible to all players) */}
+      {myPlayer && myPlayer.role === 'player' && (
         <GameControlButton roomCode={roomCode} playerToken={userToken} phase={store.gamePhase} bettingComplete={store.bettingComplete} />
       )}
 

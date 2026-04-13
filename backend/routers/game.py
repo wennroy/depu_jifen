@@ -6,13 +6,13 @@ from backend.database import get_db
 from backend.models import Player
 from backend.routers.deps import get_room_and_player, get_room_admin
 from backend.schemas.room import PlayerActionRequest, SettleHandRequest, SetAwayRequest
-from backend.services.game_service import start_hand, player_action, next_betting_round, settle_hand, set_away
+from backend.services.game_service import start_hand, player_action, next_betting_round, settle_hand, set_away, abort_hand
 
 router = APIRouter(prefix="/api/rooms/{room_code}", tags=["game"])
 
 
 @router.post("/start-hand")
-async def api_start_hand(deps=Depends(get_room_admin)):
+async def api_start_hand(deps=Depends(get_room_and_player)):
     room, player, user, db = deps
     if room.game_phase != "lobby":
         raise HTTPException(400, "当前不在等待阶段")
@@ -37,10 +37,20 @@ async def api_action(req: PlayerActionRequest, deps=Depends(get_room_and_player)
 
 
 @router.post("/next-round")
-async def api_next_round(deps=Depends(get_room_admin)):
+async def api_next_round(deps=Depends(get_room_and_player)):
     room, player, user, db = deps
     try:
         await next_betting_round(db, room)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@router.post("/abort-hand")
+async def api_abort_hand(deps=Depends(get_room_and_player)):
+    room, player, user, db = deps
+    try:
+        await abort_hand(db, room)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {"ok": True}

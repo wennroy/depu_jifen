@@ -167,6 +167,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         break;
       }
+      case 'hand_aborted': {
+        const d = msg.data;
+        addLog('abort', '对局终止，下注已退还', 0);
+        set({
+          gamePhase: 'lobby', pot: 0, currentBetLevel: 0, actionSeat: null,
+          bettingComplete: false, currentRound: d.round,
+          players: state.players.map(p => {
+            const u = d.players?.find((u: any) => u.player_id === p.player_id);
+            return u ? { ...p, chips: u.chips, round_bet: 0, hand_bet: 0, is_folded: false } : p;
+          }),
+        });
+        break;
+      }
       case 'chips_updated': {
         const d = msg.data;
         addLog('chips', d.reason || `${d.username} 筹码变化`, Math.abs(d.delta || d.amount || 0));
